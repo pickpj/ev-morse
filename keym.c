@@ -4,7 +4,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
+#include <signal.h>
 #include <sys/time.h>
+
+char pattern[100] = "";
+
+void reset_pattern(int sig) {
+    memset(pattern, 0, sizeof(pattern));
+}
+
 
 int main(int argc, char **argv)
 {
@@ -22,8 +30,16 @@ int main(int argc, char **argv)
     struct timeval start_time, end_time;
     int keyc = -1;
     int hold = 0;
-    char pattern[100] = "";
     int lol = 500;
+
+    struct itimerval timer;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = 600000;
+
+    signal(SIGALRM, reset_pattern);
+
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
             perror("Error reading");
@@ -31,34 +47,30 @@ int main(int argc, char **argv)
         }
         if (ev.type == EV_KEY) {
             if (keyc != ev.code && keyc != -1) {
-                keyc = ev.code;
-                printf("\n evcode %d \n keyc %d", ev.code, keyc);
-                fflush(stdout);
                 memset(pattern, 0, sizeof(pattern));
             }
-            if (ev.code > 160) {
-                keyc = ev.code;
-                int lindx = strlen(pattern) - 1;
-                if (hold < 1 && ev.value == 2) {
-                    strcat(pattern,"1");
-                    hold++;
-                } else if (ev.value == 0 && hold > 0) {
-                    hold = 0;
-                    gettimeofday(&end_time, NULL);
-                    double elapsed_time = (end_time.tv_sec - start_time.tv_sec) \
-                                        + (end_time.tv_usec - start_time.tv_usec) / 1e6;
-                    printf("\nKey code: %d, Value: %s time since last hold: %.6f ", \
-                            ev.code, pattern, elapsed_time);
-                    fflush(stdout);
-                    gettimeofday(&start_time, NULL);
-                } else if (hold < 1 && ev.value == 0) {
-                    strcat(pattern,"0");
-                    printf("\nKey code: %d, Value: %s", ev.code, pattern);
-                    fflush(stdout);
-                } else if (ev.value == 1) {
-                    hold = 0;
-                }
+            keyc = ev.code;
+            int lindx = strlen(pattern) - 1;
+            if (hold < 1 && ev.value == 2) {
+                strcat(pattern,"1");
+                hold++;
+            } else if (ev.value == 0 && hold > 0) {
+                hold = 0;
+                gettimeofday(&end_time, NULL);
+                double elapsed_time = (end_time.tv_sec - start_time.tv_sec) \
+                                    + (end_time.tv_usec - start_time.tv_usec) / 1e6;
+                printf("\nKey code: %d, Value: %s time since last hold: %.6f ", \
+                        ev.code, pattern, elapsed_time);
+                fflush(stdout);
+                gettimeofday(&start_time, NULL);
+            } else if (hold < 1 && ev.value == 0) {
+                strcat(pattern,"0");
+                printf("\nKey code: %d, Value: %s", ev.code, pattern);
+                fflush(stdout);
+            } else if (ev.value == 1) {
+                hold = 0;
             }
+            setitimer(ITIMER_REAL, &timer, NULL);
         }
     }
 
