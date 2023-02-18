@@ -9,5 +9,5 @@ gcc -o keym keym.c # compile the code
 sudo ./keym /dev/input/event0
 ```
 # Changing timings
-The long and short press timing comes from evtest, aka I don't know how to change it.
+The long and short press timing comes from evtest, aka I don't know how to change it. <br>
 The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
