@@ -6,11 +6,12 @@
 #include <linux/input.h>
 #include <signal.h>
 
-
 char pattern[100] = "";
 int keyc = -1;
 
-void reset_pattern(int sig) {
+void run_pattern(int sig) {
+    int len = strlen(pattern);
+    // vvv Your code goes here vvv
     if (keyc == 164){
         system("playerctl play-pause");
     } else if (keyc == 165) {
@@ -20,9 +21,11 @@ void reset_pattern(int sig) {
             system("playerctl position 10+");
         }
     } else if (keyc == 163) {
-    } else if (keyc == 140) {
-
+        for(int i = 0; i < len; i++) {
+            system("");
+        }
     }
+    // ^^^ Your code goes here ^^^
     memset(pattern, 0, sizeof(pattern));
 }
 
@@ -39,26 +42,22 @@ int main(int argc, char **argv)
         perror("Failed to open device");
         return 1;
     }
-    struct timeval start_time, end_time;
     int hold = 0;
-    int lol = 500;
 
+    // ADJUST TIMINGS HERE
     struct itimerval timer;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
-    timer.it_value.tv_usec = 600000;
+    timer.it_value.tv_usec = 350000;
 
-    signal(SIGALRM, reset_pattern);
+    signal(SIGALRM, run_pattern);
     
     char dbus_addr[50];
     setuid(1000);
     uid_t uid = getuid();
-    printf("%d",uid);
     sprintf(dbus_addr, "unix:path=/run/user/%d/bus", uid);
     setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr, 1);
-    setenv("DISPLAY", getenv("DISPLAY"), 1);
-
 
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
@@ -71,18 +70,14 @@ int main(int argc, char **argv)
             }
             keyc = ev.code;
             int lindx = strlen(pattern) - 1;
+            
             if (hold < 1 && ev.value == 2) {
                 strcat(pattern,"1");
                 hold++;
             } else if (ev.value == 0 && hold > 0) {
                 hold = 0;
-                gettimeofday(&end_time, NULL);
-                double elapsed_time = (end_time.tv_sec - start_time.tv_sec) \
-                                    + (end_time.tv_usec - start_time.tv_usec) / 1e6;
-                printf("\nKey code: %d, Value: %s time since last hold: %.6f ", \
-                        ev.code, pattern, elapsed_time);
+                printf("\nKey code: %d, Value: %s", ev.code, pattern);
                 fflush(stdout);
-                gettimeofday(&start_time, NULL);
             } else if (hold < 1 && ev.value == 0) {
                 strcat(pattern,"0");
                 printf("\nKey code: %d, Value: %s", ev.code, pattern);
