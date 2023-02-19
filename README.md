@@ -25,10 +25,14 @@ Here is a general example of how the bindings would be set. <br>
             system("playerctl position 10+");
         }
     } else if (keyc == 163) {
+        for(int i = 0; i < len; i++) {
+            system("");
+        }
     }
 ```
 `strcmp()` allows us to compare the pattern with a str. In this case 01 or 00, (short, long) and (short, short) presses respectively. <br>
 `keyc` is the variable holding the key code value, to find the keycode use `sudo evtest /dev/input/event0`. (Make sure to set the correct event, look at Usage) <br>
 `system()` allows us to run commands as if they were run from the terminal. It is under the assumption that UID is 1000. <br>
+`for()` allows us loop command(s) based on the length (`len` variable) of the pattern.
 # Dependencies
 gcc and gcc-libs ? I think, but am not sure.
