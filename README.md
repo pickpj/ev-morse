@@ -1,7 +1,7 @@
 # ev-morse
 I've never written code in C before (using llm's to their full potential). :) <br>
 The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination)<br>
-Uses sudo privileges because it monitors the keyboard. Not sure how else to do it, maybe this is some cybersecurity cardinal sin <br>¯\\_ (ツ) _/¯ <i>oh well</i>.
+Uses sudo privileges because it monitors the keyboard. Not sure how else to do it, maybe this is some cybersecurity cardinal sin <br>¯\\_ (ツ) _/¯ <i>oh well</i>. So make sure to read the code, it's less than a 100 lines.
 # Usage
 The number following event varies, check with `sudo evtest /dev/input/event0` and increasing the number gradually
 ```
