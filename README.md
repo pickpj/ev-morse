@@ -10,7 +10,7 @@ sudo ./evmorse /dev/input/event0
 ```
 The first line compiles the code, then the second line runs the program.
 # Changing timings
-The long and short press timing comes from evtest, aka I don't know how to change it. <br>
+The long and short press timing comes from how events are handled, aka I don't know how to change it. <br>
 The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
 # Changing bindings
 The key codes will vary from device to device.<br>
@@ -20,9 +20,9 @@ Here is a general example of how the bindings would be set. <br>
         system("playerctl play-pause");
     } else if (keyc == 165) {
         if (strcmp(pattern, "01") == 0){
-            system("playerctl position 10+");
-        } else if (strcmp(pattern, "00") == 0){
             system("playerctl next");
+        } else if (strcmp(pattern, "00") == 0){
+            system("playerctl position 10+");
         }
     } else if (keyc == 163) {
     }
