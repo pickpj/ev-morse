@@ -1,7 +1,7 @@
 # ev-morse
-I've never written code in C before (using llm's to their full potential). :) <br>
+I've never written code in C before (using LLM's to their full potential). :) <br>
 The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination)<br>
-Uses sudo privileges because it monitors the keyboard. Not sure how else to do it, maybe this is some cybersecurity cardinal sin <br>¯\\_ (ツ) _/¯ <i>oh well</i>. So make sure to read the code, it's less than a 100 lines.
+Uses sudo privileges because it monitors the keyboard. Not sure how else to do it, maybe this is some cybersecurity cardinal sin. <br>¯\\_ (ツ) _/¯ <i>oh well</i> So be sure to read the code, it's less than 100 lines.
 # Usage
 The number following event varies, check with `sudo evtest /dev/input/event0` and increasing the number gradually
 ```
@@ -9,9 +9,6 @@ gcc -o evmorse evmorse.c
 sudo ./evmorse /dev/input/event0
 ```
 The first line compiles the code, then the second line runs the program.
-# Changing timings
-The long and short press timing comes from how events are handled, aka I don't know how to change it. <br>
-The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
 # Changing bindings
 The key codes will vary from device to device.<br>
 Here is a general example of how the bindings would be set. <br>
@@ -34,5 +31,29 @@ Here is a general example of how the bindings would be set. <br>
 `keyc` is the variable holding the key code value, to find the keycode use `sudo evtest /dev/input/event0`. (Make sure to set the correct event, look at Usage) <br>
 `system()` allows us to run commands as if they were run from the terminal. It is under the assumption that UID is 1000. <br>
 `for()` allows us loop command(s) based on the length (`len` variable) of the pattern.
+# Changing timings
+The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
+The long and short press timing comes from how events are handled. A potential solution would be to change the threshold for hold to be higher. <br>
+Here is an example solution (changed lines are marked with //):
+```
+            if (ev.value == 2) {                                //
+                                                                //
+                hold++;
+            } else if (ev.value == 0 && hold > 19) {            //
+                hold = 0;
+                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
+                fflush(stdout);
+            } else if (hold < 20 && ev.value == 0) {            //
+                strcat(pattern,"0");
+                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
+                fflush(stdout);
+            } else if (ev.value == 1) {
+                hold = 0;
+            }
+            if (hold == 20) {                                   //
+                strcat(pattern,"1");                            //
+            }                                                   //
+            setitimer(ITIMER_REAL, &timer, NULL);
+```
 # Dependencies
 gcc and gcc-libs ? I think, but am not sure.
