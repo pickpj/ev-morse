@@ -63,4 +63,5 @@ Here is an example solution (changed lines are marked with //):
 gcc and gcc-libs ? I think, but am not sure.
 
 # Quirks
-After opening the /dev/input the UID is changed to 1000 (default non root user). This could be changed if we wanted to run commands as a different user.
+- After opening the /dev/input the UID is changed to 1000 (default non root user). This could be changed if we wanted to run commands as a different user.
+- The low level manner in which the keyboard is captured means that macros work even when using a VM.
