@@ -12,18 +12,32 @@ int keyc = -1;
 void run_pattern(int sig) {
     int len = strlen(pattern);
     // vvv Your code goes here vvv
-    if (keyc == 164){
-        system("playerctl play-pause");
-    } else if (keyc == 165) {
-        if (strcmp(pattern, "01") == 0){
-            system("playerctl next");
-        } else if (strcmp(pattern, "00") == 0){
-            system("playerctl position 10+");
-        }
-    } else if (keyc == 163) {
-        for(int i = 0; i < len; i++) {
-            system("");
-        }
+    switch (keyc) {
+        case 164:
+            system("playerctl --player=spotify play-pause");
+            break;
+        case 163:
+            if (strcmp(pattern, "1") == 0){
+                system("playerctl --player=spotify next");
+            } else if (len > 1){
+                for(int i = 1; i < len; i++) {
+                    system("playerctl --player=spotify next");
+                } 
+            } else {
+                system("playerctl --player=spotify position 10+");
+            }
+            break;
+        case 165:
+            if (strcmp(pattern, "1") == 0){
+                system("playerctl --player=spotify previous");
+            } else if (len > 1){
+                for(int i = 1; i < len; i++) {
+                    system("playerctl --player=spotify next");
+                } 
+            } else {
+                system("playerctl --player=spotify position 10-");
+            }
+            break;
     }
     // ^^^ Your code goes here ^^^
     memset(pattern, 0, sizeof(pattern));
@@ -49,7 +63,7 @@ int main(int argc, char **argv)
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
-    timer.it_value.tv_usec = 350000;
+    timer.it_value.tv_usec = 300000;
 
     signal(SIGALRM, run_pattern);
     
@@ -69,18 +83,17 @@ int main(int argc, char **argv)
                 memset(pattern, 0, sizeof(pattern));
             }
             keyc = ev.code;
-            int lindx = strlen(pattern) - 1;
             
             if (hold < 1 && ev.value == 2) {
                 strcat(pattern,"1");
                 hold++;
             } else if (ev.value == 0 && hold > 0) {
                 hold = 0;
-                printf("\nKey code: %d, Value: %s", ev.code, pattern);
+                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
                 fflush(stdout);
             } else if (hold < 1 && ev.value == 0) {
                 strcat(pattern,"0");
-                printf("\nKey code: %d, Value: %s", ev.code, pattern);
+                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
                 fflush(stdout);
             } else if (ev.value == 1) {
                 hold = 0;
@@ -88,7 +101,6 @@ int main(int argc, char **argv)
             setitimer(ITIMER_REAL, &timer, NULL);
         }
     }
-
     close(fd);
     return 0;
 }
