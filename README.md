@@ -16,18 +16,22 @@ The first line compiles the code, then the second line runs the program.
 The key codes will vary from device to device.<br>
 Here is a general example of how the bindings would be set. <br>
 ```
-    if (keyc == 164){
-        system("playerctl play-pause");
-    } else if (keyc == 165) {
-        if (strcmp(pattern, "01") == 0){
-            system("playerctl next");
-        } else if (strcmp(pattern, "00") == 0){
-            system("playerctl position 10+");
-        }
-    } else if (keyc == 163) {
-        for(int i = 0; i < len; i++) {
-            system("");
-        }
+    switch (keyc) {
+        case 164:
+            system("playerctl play-pause");
+            break;
+        case 163:
+            for(int i = 0; i < len; i++) {
+                system("");
+            }
+            break;
+        case 165:
+            if (strcmp(pattern, "01") == 0){
+                system("playerctl next");
+            } else if (strcmp(pattern, "00") == 0){
+                system("playerctl position 10+");
+            }
+            break;
     }
 ```
 `strcmp()` allows us to compare the pattern with a str. In this case 01 or 00, (short, long) and (short, short) presses respectively. <br>
@@ -69,27 +73,31 @@ gcc and gcc-libs ? I think, but am not sure.
 # More binding examples
 My audio control setup:
 ```
-    if (keyc == 164){
-        system("playerctl --player=spotify play-pause");
-    } else if (keyc == 163) {
-        if (strcmp(pattern, "1") == 0){
-            system("playerctl --player=spotify next");
-        } else if (len > 1){
-            for(int i = 1; i < len; i++) {
+    switch (keyc) {
+        case 164:
+            system("playerctl --player=spotify play-pause");
+            break;
+        case 163:
+            if (strcmp(pattern, "1") == 0){
                 system("playerctl --player=spotify next");
-            } 
-        } else {
-            system("playerctl --player=spotify position 10+");
-        }
-    } else if (keyc == 165) {
-        if (strcmp(pattern, "1") == 0){
-            system("playerctl --player=spotify previous");
-        } else if (len > 1){
-            for(int i = 1; i < len; i++) {
-                system("playerctl --player=spotify next");
-            } 
-        } else {
-            system("playerctl --player=spotify position 10-");
-        }
+            } else if (len > 1){
+                for(int i = 1; i < len; i++) {
+                    system("playerctl --player=spotify next");
+                } 
+            } else {
+                system("playerctl --player=spotify position 10+");
+            }
+            break;
+        case 165:
+            if (strcmp(pattern, "1") == 0){
+                system("playerctl --player=spotify previous");
+            } else if (len > 1){
+                for(int i = 1; i < len; i++) {
+                    system("playerctl --player=spotify next");
+                } 
+            } else {
+                system("playerctl --player=spotify position 10-");
+            }
+            break;
     }
 ```
