@@ -65,3 +65,31 @@ gcc and gcc-libs ? I think, but am not sure.
 # Quirks
 - After opening the /dev/input the UID is changed to 1000 (default non root user). This could be changed if we wanted to run commands as a different user.
 - The low level manner in which the keyboard is captured means that macros work even when using a VM.
+
+# More binding examples
+My audio control setup:
+```
+    if (keyc == 164){
+        system("playerctl --player=spotify play-pause");
+    } else if (keyc == 163) {
+        if (strcmp(pattern, "1") == 0){
+            system("playerctl --player=spotify next");
+        } else if (len > 1){
+            for(int i = 1; i < len; i++) {
+                system("playerctl --player=spotify next");
+            } 
+        } else {
+            system("playerctl --player=spotify position 10+");
+        }
+    } else if (keyc == 165) {
+        if (strcmp(pattern, "1") == 0){
+            system("playerctl --player=spotify previous");
+        } else if (len > 1){
+            for(int i = 1; i < len; i++) {
+                system("playerctl --player=spotify next");
+            } 
+        } else {
+            system("playerctl --player=spotify position 10-");
+        }
+    }
+```
