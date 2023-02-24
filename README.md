@@ -14,6 +14,7 @@ The first line compiles the code, then the second line runs the program.
 
 # Changing bindings
 The key codes will vary from device to device.<br>
+&emsp; *IMPORTANT!* &emsp; Keycodes differ between Xorg and /dev &ensp; (Ex. For me numpad minus is 82 in xev, but 74 in evtest)<br>
 Here is a general example of how the bindings would be set. <br>
 ```
     switch (keyc) {
@@ -37,7 +38,7 @@ Here is a general example of how the bindings would be set. <br>
 `strcmp()` allows us to compare the pattern with a str. In this case 01 or 00, (short, long) and (short, short) presses respectively. <br>
 `keyc` is the variable holding the key code value, to find the keycode use `sudo evtest /dev/input/event0`. (Make sure to set the correct event, look at Usage) <br>
 `system()` allows us to run commands as if they were run from the terminal. It is under the assumption that UID is 1000. <br>
-`for()` allows us loop command(s) based on the length (`len` variable) of the pattern.
+`for()` allows us to loop command(s) based on the length (`len` variable) of the pattern.
 
 # Changing timings
 The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
@@ -75,28 +76,39 @@ My audio control setup:
 ```
     switch (keyc) {
         case 164:
-            system("playerctl --player=spotify play-pause");
+            system("playerctl --player=spotify,cmus,%%any play-pause");
             break;
         case 163:
-            if (strcmp(pattern, "1") == 0){
-                system("playerctl --player=spotify next");
-            } else if (len > 1){
+            if (strcmp(pattern, "1") == 0) {
+                system("playerctl --player=spotify,cmus,%%any next");
+            } else if (len > 1) {
                 for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify next");
+                    system("playerctl --player=spotify,cmus,%%any next");
                 } 
             } else {
-                system("playerctl --player=spotify position 10+");
+                system("playerctl --player=spotify,cmus,%%any position 10+");
             }
             break;
         case 165:
-            if (strcmp(pattern, "1") == 0){
-                system("playerctl --player=spotify previous");
-            } else if (len > 1){
+            if (strcmp(pattern, "1") == 0) {
+                system("playerctl --player=spotify,cmus,%%any previous");
+            } else if (len > 1) {
                 for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify next");
+                    system("playerctl --player=spotify,cmus,%%any next");
                 } 
             } else {
-                system("playerctl --player=spotify position 10-");
+                system("playerctl --player=spotify,cmus,%%any position 10-");
+            }
+            break;
+        case 96:
+            break;
+        case 74:
+            if (len == 1){
+                system("playerctl --player=spotify volume 0.5");
+            } else if (len == 2) {
+                system("playerctl --player=spotify volume 0.7");
+            } else if (len == 3) {
+                system("playerctl --player=spotify volume 1");
             }
             break;
     }
