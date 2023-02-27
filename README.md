@@ -14,7 +14,7 @@ The first line compiles the code, then the second line runs the program.
 
 # Changing bindings
 The key codes will vary from device to device.<br>
-&emsp; *IMPORTANT!* &emsp; Keycodes differ between Xorg and /dev &ensp; (Ex. For me numpad minus is 82 in xev, but 74 in evtest)<br>
+&emsp; *IMPORTANT!* &emsp; Keycodes differ between X11 and /dev &ensp; (Ex. For me numpad minus is 82 in xev, but 74 in evtest)<br>
 Here is a general example of how the bindings would be set. <br>
 ```
     switch (keyc) {
@@ -94,7 +94,7 @@ My audio control setup:
                 system("playerctl --player=spotify,cmus,%%any previous");
             } else if (len > 1) {
                 for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify,cmus,%%any next");
+                    system("playerctl --player=spotify,cmus,%%any previous");
                 } 
             } else {
                 system("playerctl --player=spotify,cmus,%%any position 10-");
