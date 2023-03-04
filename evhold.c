@@ -21,7 +21,7 @@ void run_pattern() {
                 if (strcmp(pattern, "1") == 0) {
                     system("playerctl --player=spotify,cmus,%%any position 5+");
                 } else {
-                    for(int i = 1; i < len; i++) {
+                    for(int i = 0; i < len; i++) {
                         system("playerctl --player=spotify,cmus,%%any next");
                     } 
                 } 
@@ -30,7 +30,7 @@ void run_pattern() {
                 if (strcmp(pattern, "1") == 0) {
                     system("playerctl --player=spotify,cmus,%%any position 5-");
                 } else {
-                    for(int i = 1; i < len; i++) {
+                    for(int i = 0; i < len; i++) {
                         system("playerctl --player=spotify,cmus,%%any previous");
                     } 
                 }
