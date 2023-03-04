@@ -9,38 +9,36 @@
 char pattern[100] = "";
 int keyc = -1;
 
-void run_pattern(int sig) {
+void run_pattern() {
     int len = strlen(pattern);
     // vvv Your code goes here vvv
-    switch (keyc) {
-        case 164:
-            system("playerctl --player=spotify play-pause");
-            break;
-        case 163:
-            if (strcmp(pattern, "1") == 0){
-                system("playerctl --player=spotify next");
-            } else if (len > 1){
-                for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify next");
+    if (len >= 1) {
+        switch (keyc) {
+            case 164:
+                system("playerctl --player=spotify,cmus,%%any play-pause");
+                break;
+            case 163:
+                if (strcmp(pattern, "1") == 0) {
+                    system("playerctl --player=spotify,cmus,%%any position 5+");
+                } else {
+                    for(int i = 1; i < len; i++) {
+                        system("playerctl --player=spotify,cmus,%%any next");
+                    } 
                 } 
-            } else {
-                system("playerctl --player=spotify position 10+");
-            }
-            break;
-        case 165:
-            if (strcmp(pattern, "1") == 0){
-                system("playerctl --player=spotify previous");
-            } else if (len > 1){
-                for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify next");
-                } 
-            } else {
-                system("playerctl --player=spotify position 10-");
-            }
-            break;
+                break;
+            case 165:
+                if (strcmp(pattern, "1") == 0) {
+                    system("playerctl --player=spotify,cmus,%%any position 5-");
+                } else {
+                    for(int i = 1; i < len; i++) {
+                        system("playerctl --player=spotify,cmus,%%any previous");
+                    } 
+                }
+                break;
+        }
+        // ^^^ Your code goes here ^^^
+        memset(pattern, 0, sizeof(pattern));
     }
-    // ^^^ Your code goes here ^^^
-    memset(pattern, 0, sizeof(pattern));
 }
 
 int main(int argc, char **argv)
@@ -57,14 +55,17 @@ int main(int argc, char **argv)
         return 1;
     }
     int hold = 0;
-
+    
     // ADJUST TIMINGS HERE
     struct itimerval timer;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 300000;
-
+    
+    // Timing between key held action
+    int interval = 10;
+    
     signal(SIGALRM, run_pattern);
     
     char dbus_addr[50];
@@ -84,14 +85,18 @@ int main(int argc, char **argv)
             }
             keyc = ev.code;
             
-            if (hold < 1 && ev.value == 2) {
-                strcat(pattern,"1");
+            if (hold % interval == (interval - 1) && ev.value == 2) {
+                strcpy(pattern, "1");
+                run_pattern();
                 hold++;
-            } else if (ev.value == 0 && hold > 0) {
+            } else if (ev.value == 2){
+                hold++;
+            } else if (ev.value == 0 && hold >= interval) {
                 hold = 0;
                 printf("\nKey code: %d, Value: %s ", ev.code, pattern);
                 fflush(stdout);
-            } else if (hold < 1 && ev.value == 0) {
+                memset(pattern, 0, sizeof(pattern));
+            } else if (hold < interval && ev.value == 0) {
                 strcat(pattern,"0");
                 printf("\nKey code: %d, Value: %s ", ev.code, pattern);
                 fflush(stdout);
