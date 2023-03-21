@@ -6,6 +6,9 @@
 #include <linux/input.h>
 #include <signal.h>
 
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_RESET   "\x1b[0m"
+
 char pattern[100] = "";
 int keyc = -1;
 
@@ -32,7 +35,7 @@ void run_pattern(int sig) {
                 system("playerctl --player=spotify previous");
             } else if (len > 1){
                 for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify next");
+                    system("playerctl --player=spotify previous");
                 } 
             } else {
                 system("playerctl --player=spotify position 10-");
@@ -48,7 +51,7 @@ int main(int argc, char **argv)
     int fd;
     struct input_event ev;
     if (argc < 2) {
-        printf("Usage: %s <input device>\n", argv[0]);
+        printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s <input device> \n", argv[0]);
         return 1;
     }
     fd = open(argv[1], O_RDONLY);
@@ -89,11 +92,11 @@ int main(int argc, char **argv)
                 hold++;
             } else if (ev.value == 0 && hold > 0) {
                 hold = 0;
-                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
+                printf("Key code: %d, Value: %s \n", ev.code, pattern);
                 fflush(stdout);
             } else if (hold < 1 && ev.value == 0) {
                 strcat(pattern,"0");
-                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
+                printf("Key code: %d, Value: %s \n", ev.code, pattern);
                 fflush(stdout);
             } else if (ev.value == 1) {
                 hold = 0;
