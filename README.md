@@ -69,7 +69,7 @@ gcc and gcc-libs ? I think, but am not sure.
 
 # Quirks
 - After opening the /dev/input the UID is changed to 1000 (default non root user). This could be changed if we wanted to run commands as a different user.
-- The low level manner in which the keyboard is captured means that macros work even when using a VM.
+- The low level manner in which the keyboard is capture means that functions work when a key is disabled with xmodmap
 
 # More binding examples
 My audio control setup:
@@ -112,4 +112,30 @@ My audio control setup:
             }
             break;
     }
+```
+Send left click to position (w/ xdotool): <br>
+\* Uses regex to parse output of xdotool getmouselocation, which is why it's so bulky *
+```
+FILE* fp;
+char mpos[50];
+regex_t regex;
+int reti;
+const char *mregex = "x:([0-9]+) y:([0-9]+)";
+size_t nmatch = 3;
+regmatch_t pmatch[3];
+
+
+// ^^ Place above the function ^^
+
+        case 65:
+            fp = popen("xdotool getmouselocation", "r");
+            fgets(mpos, sizeof(mpos)-1, fp);
+            reti = regcomp(&regex, mregex, REG_EXTENDED);
+            reti = regexec(&regex, mpos, nmatch, pmatch, 0);
+            pclose(fp);
+            system("xdotool mousemove 1900 1050 && xdotool click 1");
+            sprintf(pattern, "xdotool mousemove %.*s %.*s", (int)(pmatch[1].rm_eo - pmatch[1].rm_so), mpos + pmatch[1].rm_so, (int)(pmatch[2].rm_eo - pmatch[2].rm_so), mpos + pmatch[2].rm_so);
+            system(pattern);
+            regfree(&regex);
+            break;
 ```
