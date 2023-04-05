@@ -1,8 +1,8 @@
 # ev-morse
 I've never written code in C before (using LLM's to their full potential). :) <br>
 The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination)<br>
-Uses root privileges because it reads output from /dev/input. Not sure how else to do it, this is probably some cybersecurity cardinal sin. <br>
-¯\\_ (ツ) _/¯ <i>oh well</i>, So be sure to read the code, it's less than 100 lines.
+Uses root privileges because it reads output from /dev/input. <br>
+¯\\_ (ツ) _/¯ <i>oh well</i>, So be sure to read the code, the non-personalized sections of code are ~100 lines.
 
 # Usage
 The number following event varies, check with `sudo evtest /dev/input/event0` and increasing the number gradually
@@ -15,55 +15,74 @@ The first line compiles the code, then the second line runs the program.
 # Changing bindings
 The key codes will vary from device to device.<br>
 &emsp; *IMPORTANT!* &emsp; Keycodes differ between X11 and /dev &ensp; (Ex. For me numpad minus is 82 in xev, but 74 in evtest)<br>
+
+## run_hold and run_pattern
+The code is separated into two functions.
+run_hold - For long key presses we can execute a command as the key is held down (think of a fast-forward function on a remote) <br>
+run_pattern - This is for executing commands based on a morse pattern (01 = short | long; 110 = long | long | short; etc.) <br>
+For a key that is defined in both functions we may not want to run the pattern after the hold function, thus we must reset the value of the pattern variable with <br>
+`memset(pattern, 0, sizeof(pattern));` <br>
 Here is a general example of how the bindings would be set. <br>
 ```
+static void run_hold() {
+    int len = strlen(pattern);
+    // vvv Your code goes here vvv
     switch (keyc) {
+        case 163:
+            system("playerctl position 5+");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+        case 165:
+            system("playerctl position 5-");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+    }
+    // ^^^ Your code goes here ^^^
+}
+
+static void run_pattern() {
+    int len = strlen(pattern);
+    // vvv Your code goes here vvv
+    if (len >= 1) {
+        switch (keyc) {
         case 164:
             system("playerctl play-pause");
             break;
         case 163:
             for(int i = 0; i < len; i++) {
-                system("");
-            }
+                system("playerctl next");
+            } 
             break;
         case 165:
-            if (strcmp(pattern, "01") == 0){
-                system("playerctl next");
-            } else if (strcmp(pattern, "00") == 0){
-                system("playerctl position 10+");
-            }
+            for(int i = 0; i < len; i++) {
+                system("playerctl previous");
+            } 
             break;
+        }
     }
+}
 ```
-`strcmp()` allows us to compare the pattern with a str. In this case 01 or 00, (short, long) and (short, short) presses respectively. <br>
 `keyc` is the variable holding the key code value, to find the keycode use `sudo evtest /dev/input/event0`. (Make sure to set the correct event, look at Usage) <br>
 `system()` allows us to run commands as if they were run from the terminal. It is under the assumption that UID is 1000. <br>
-`for()` allows us to loop command(s) based on the length (`len` variable) of the pattern.
+In the above example a short key press of the key with code 163 would result in "playerctl next" executing (next song). <br>
+However, when holding the key "playerctl position 5+" would execute (fast forward). <br>
+Additionally, multiple key presses would increase the len (length) variable and the command would execute the number of times pressed.<br>
+
+<br>
+Another important operator is `strcmp()`<br>
+This allows us to compare the pattern with a str to separate by the morse pattern. Ex:
+
+```
+if (strcmp(pattern, "00") == 0) {            // double short press
+    system("");
+} else if (strcmp(pattern, "1") == 0) {      // one long press
+    system("");
+}
+```
 
 # Changing timings
 The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
-The long and short press timing comes from how events are handled. A potential solution would be to change the threshold for hold to be higher. <br>
-Here is an example solution (changed lines are marked with //):
-```
-            if (ev.value == 2) {                                //
-                                                                //
-                hold++;
-            } else if (ev.value == 0 && hold > 19) {            //
-                hold = 0;
-                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
-                fflush(stdout);
-            } else if (hold < 20 && ev.value == 0) {            //
-                strcat(pattern,"0");
-                printf("\nKey code: %d, Value: %s ", ev.code, pattern);
-                fflush(stdout);
-            } else if (ev.value == 1) {
-                hold = 0;
-            }
-            if (hold == 20) {                                   //
-                strcat(pattern,"1");                            //
-            }                                                   //
-            setitimer(ITIMER_REAL, &timer, NULL);
-```
+
 # Dependencies
 gcc and gcc-libs ? I think, but am not sure.
 
@@ -76,42 +95,46 @@ My audio control setup:
 ```
     switch (keyc) {
         case 164:
-            system("playerctl --player=spotify,cmus,%%any play-pause");
+            system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
+            memset(pattern, 0, sizeof(pattern));
             break;
         case 163:
-            if (strcmp(pattern, "1") == 0) {
-                system("playerctl --player=spotify,cmus,%%any next");
-            } else if (len > 1) {
-                for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify,cmus,%%any next");
-                } 
-            } else {
-                system("playerctl --player=spotify,cmus,%%any position 10+");
-            }
+            system("playerctl --player=spotify,youtube-music,cmus,%%any position 5+");
+            memset(pattern, 0, sizeof(pattern));
             break;
         case 165:
-            if (strcmp(pattern, "1") == 0) {
-                system("playerctl --player=spotify,cmus,%%any previous");
-            } else if (len > 1) {
-                for(int i = 1; i < len; i++) {
-                    system("playerctl --player=spotify,cmus,%%any previous");
-                } 
-            } else {
-                system("playerctl --player=spotify,cmus,%%any position 10-");
-            }
-            break;
-        case 96:
-            break;
-        case 74:
-            if (len == 1){
-                system("playerctl --player=spotify volume 0.5");
-            } else if (len == 2) {
-                system("playerctl --player=spotify volume 0.7");
-            } else if (len == 3) {
-                system("playerctl --player=spotify volume 1");
-            }
+            system("playerctl --player=spotify,youtube-music,cmus,%%any position 5-");
+            memset(pattern, 0, sizeof(pattern));
             break;
     }
+// . ^^ run_hold ^^
+// .   
+// . vv run_pattern vv
+        
+        switch (keyc) {
+        case 164:
+            system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
+            break;
+        case 163:
+            for(int i = 0; i < len; i++) {
+                system("playerctl --player=spotify,youtube-music,cmus,%%any next");
+            } 
+            break;
+        case 165:
+            for(int i = 0; i < len; i++) {
+                system("playerctl --player=spotify,youtube-music,cmus,%%any previous");
+            } 
+            break;
+        case 74:
+            if (strcmp(pattern,"0") == 0){
+                system("playerctl -p spotify volume 0.5 || playerctl -p youtube-music volume 5 || playerctl --player=cmus,%%any volume 0.5");
+            } else if (strcmp(pattern,"1") == 0) {
+                system("playerctl -p spotify volume 0.7 || playerctl -p youtube-music volume 15 || playerctl --player=cmus,%%any volume 0.7");
+            } else {
+                system("playerctl -p spotify volume 1 || playerctl -p youtube-music volume 30 || playerctl --player=cmus,%%any volume 1");
+            }
+            break;
+        }
 ```
 Send left click to position (w/ xdotool): <br>
 \* Uses regex to parse output of xdotool getmouselocation, which is why it's so bulky *
