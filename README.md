@@ -1,6 +1,5 @@
 # ev-morse
-I've never written code in C before (using LLM's to their full potential). :) <br>
-The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination)<br>
+The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination) (also can now bind commands to repeat when being held down)<br>
 Uses root privileges because it reads output from /dev/input. <br>
 ¯\\_ (ツ) _/¯ <i>oh well</i>, So be sure to read the code, the non-personalized sections of code are ~100 lines.
 
@@ -42,8 +41,8 @@ static void run_hold() {
 
 static void run_pattern() {
     int len = strlen(pattern);
-    // vvv Your code goes here vvv
     if (len >= 1) {
+        // vvv Your code goes here vvv
         switch (keyc) {
         case 164:
             system("playerctl play-pause");
@@ -59,17 +58,18 @@ static void run_pattern() {
             } 
             break;
         }
+        // ^^^ Your code goes here ^^^
+        memset(pattern, 0, sizeof(pattern));
     }
 }
 ```
 `keyc` is the variable holding the key code value, to find the keycode use `sudo evtest /dev/input/event0`. (Make sure to set the correct event, look at Usage) <br>
 `system()` allows us to run commands as if they were run from the terminal. It is under the assumption that UID is 1000. <br>
 In the above example a short key press of the key with code 163 would result in "playerctl next" executing (next song). <br>
-However, when holding the key "playerctl position 5+" would execute (fast forward). <br>
-Additionally, multiple key presses would increase the len (length) variable and the command would execute the number of times pressed.<br>
+However, when holding the key "playerctl position 5+" in the run_hold function would execute instead (fast forward). <br>
+Additionally, (after fast forwarding) because we used `memset` the pattern variable is empty and fails the `if(len >=1)` check. Preventing the run_pattern function from executing any commands. <br>
 
-<br>
-Another important operator is `strcmp()`<br>
+Another important operator is `strcmp()`. <br>
 This allows us to compare the pattern with a str to separate by the morse pattern. Ex:
 
 ```
@@ -81,7 +81,11 @@ if (strcmp(pattern, "00") == 0) {            // double short press
 ```
 
 # Changing timings
-The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec`
+The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec` <br>
+The interval value controls the interval on which the run_hold function is ran.<br>
+A key press would have a value of 1 after around 250ms. If we keep holding for around 300ms (30ms x 10; default interval is 10) the run_hold function is executed. <br>
+Referring back to the earlier example, holding for 550ms would fast forward and repeat every 300ms; whereas, any key presses released prior to 550ms would go to the next song (after the expiration timing; default 300ms). <br>
+
 
 # Dependencies
 gcc and gcc-libs ? I think, but am not sure.
