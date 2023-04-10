@@ -1,6 +1,6 @@
 # ev-morse
 The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination) <br>
-Additionally there is a secondary function to repeat commands when being held down. <br>
+Additionally there is a secondary function (run_hold) to repeat commands when being held down longer. <br>
 Uses root privileges because it reads output from /dev/input. <br>
 ¯\\_ (ツ) _/¯ <i>oh well</i>, So be sure to read the code, the non-personalized sections of code are ~100 lines.
 
@@ -10,7 +10,8 @@ The number following event varies, check with `sudo evtest /dev/input/event0` an
 gcc -o evmorse evmorse.c
 sudo ./evmorse /dev/input/event0
 ```
-The first line compiles the code, then the second line runs the program.
+The first line compiles the code, then the second line runs the program on event##. <br>
+Try typing! Once you see the output you can get a better understanding of when commands execute.
 
 # Changing bindings
 The key codes will vary from device to device.<br>
@@ -81,6 +82,7 @@ if (strcmp(pattern, "00") == 0) {            // double short press
 }
 ```
 
+
 # Changing timings
 The expiration timing from no key press is defined in `timer.it_value.tv_sec` and `timer.it_value.tv_usec` <br>
 The interval value controls the interval on which the run_hold function is ran.<br>
@@ -99,6 +101,15 @@ gcc and gcc-libs ? I think, but am not sure.
 # Quirks
 - After opening the /dev/input the UID is changed to 1000 (default non root user). This could be changed if we wanted to run commands as a different user.
 - The low level manner in which the keyboard is capture means that functions work when a key is disabled with xmodmap
+- Can be used with more than just the keyboard, can interact with anything that outputs to events (may need to modify some code) 
+    - Ex. In evtest the laptop lid switch outputs show up  as  
+    ```
+    Event: time 1681146031.388762, type 5 (EV_SW), code 0 (SW_LID), value 1
+    Event: time 1681146031.388762, -------------- SYN_REPORT ------------
+    Event: time 1681146032.121323, type 5 (EV_SW), code 0 (SW_LID), value 0
+    Event: time 1681146032.121323, -------------- SYN_REPORT ------------
+    ```
+    - If we changed `if(ev.type == EV_KEY)` to EV_SW we are able to execute commands under code 0. ([more info on event types](https://www.kernel.org/doc/html/v4.17/input/event-codes.html#event-types))
 
 # More binding examples
 My audio control setup:
