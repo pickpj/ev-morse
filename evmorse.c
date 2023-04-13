@@ -63,40 +63,6 @@ static void run_pattern() {
                 system("playerctl --player=spotify,youtube-music,cmus,%%any previous");
             } 
             break;
-        case 74:
-            if (strcmp(pattern,"0") == 0){
-                system("playerctl -p spotify volume 0.5 || playerctl -p youtube-music volume 5 || playerctl --player=cmus,%%any volume 0.5");
-            } else if (strcmp(pattern,"1") == 0) {
-                system("playerctl -p spotify volume 0.7 || playerctl -p youtube-music volume 15 || playerctl --player=cmus,%%any volume 0.7");
-            } else {
-                system("playerctl -p spotify volume 1 || playerctl -p youtube-music volume 30 || playerctl --player=cmus,%%any volume 1");
-            }
-            break;
-        case 41:
-            if (strcmp(pattern, "00") == 0) {
-                system("xdotool key --delay 1 asciitilde");
-            } else if (strcmp(pattern, "1") == 0) {
-                system("gnome-pie -o 272");
-            } else {
-                for(int i = 0; i < len; i++) {
-                    strcat(grave, "`");
-                } 
-                sprintf(pattern, "xdotool type '%s'", grave);
-                system(pattern);
-                memset(grave, 0, sizeof(grave));
-            }
-            break;
-        case 65:
-            fp = popen("xdotool getmouselocation", "r");
-            fgets(mpos, sizeof(mpos)-1, fp);
-            reti = regcomp(&regex, mregex, REG_EXTENDED);
-            reti = regexec(&regex, mpos, nmatch, pmatch, 0);
-            pclose(fp);
-            system("xdotool mousemove 1300 1050 && xdotool click 1");
-            sprintf(pattern, "xdotool mousemove %.*s %.*s", (int)(pmatch[1].rm_eo - pmatch[1].rm_so), mpos + pmatch[1].rm_so, (int)(pmatch[2].rm_eo - pmatch[2].rm_so), mpos + pmatch[2].rm_so);
-            system(pattern);
-            regfree(&regex);
-            break;
         }
     }
     // ^^^ Your code goes here ^^^
