@@ -13,16 +13,6 @@
 char pattern[100] = "";
 int keyc = -1;
 
-char grave[10] = "";
-
-FILE* fp;
-char mpos[50];
-regex_t regex;
-int reti;
-const char *mregex = "x:([0-9]+) y:([0-9]+)";
-size_t nmatch = 3;
-regmatch_t pmatch[3];
-
 static void run_hold() {
     int len = strlen(pattern);
     // vvv Your code goes here vvv
