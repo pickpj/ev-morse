@@ -110,6 +110,7 @@ gcc and gcc-libs ? I think, but am not sure.
     Event: time 1681146032.121323, -------------- SYN_REPORT ------------
     ```
     - If we changed `if(ev.type == EV_KEY)` to EV_SW we are able to execute commands under code 0. ([more info on event types](https://www.kernel.org/doc/html/v4.17/input/event-codes.html#event-types))
+- Depending on what you are doing, if you come across race conditions with the signal, it may help to append an & at the end of the `system()` command. &emsp; [more info](https://stackoverflow.com/questions/6962156/is-there-a-way-to-not-wait-for-a-system-command-to-finish-in-c)
 
 # More binding examples
 My audio control setup:
