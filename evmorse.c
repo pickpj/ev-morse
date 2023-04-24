@@ -4,7 +4,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <linux/input.h>
+// #include <linux/input.h>
 #include <linux/uinput.h>
 
 #define ANSI_RED     "\x1b[31m"
@@ -97,50 +97,23 @@ int main(int argc, char **argv)
     emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
     emit(fd2, EV_SYN, SYN_REPORT, 0);
 
-    // clear the file descriptor set
-    FD_ZERO(&readfds);
-    // add stdin and keyboard to the file descriptor set
-    FD_SET(STDIN_FILENO, &readfds);
-    FD_SET(fd, &readfds);
-
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 1000000;
-    int ret = select(fd + 1, &readfds, NULL, NULL, &timeout);
     while (1) {
-        if (ret == -1) {
-            perror("select");
-            exit(1);
-        } else if (ret == 0) {
+        struct input_event ev;
+        int n = read(fd, &ev, sizeof(ev));
+        if (ev.type == EV_LED) {
+            printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
+            fflush(stdout);
+            emit(fd2, EV_KEY, KEY_NUMLOCK, 1);
+            emit(fd2, EV_SYN, SYN_REPORT, 0);
+            emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
+            emit(fd2, EV_SYN, SYN_REPORT, 0);
+            nlstate = !ev.value;
+            printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
             break;
-        } else {
-            struct input_event ev;
-            int n = read(fd, &ev, sizeof(ev));
-            if (n == -1) {
-                perror("read");
-                exit(1);
-            } else if (n == 0) {
-                // printf("??\n");
-                break;
-            } else {
-                if (ev.type == EV_LED) {
-                    printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
-                    fflush(stdout);
-                    nlstate = !ev.value;
-                    emit(fd2, EV_KEY, KEY_NUMLOCK, 1);
-                    emit(fd2, EV_SYN, SYN_REPORT, 0);
-                    emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
-                    emit(fd2, EV_SYN, SYN_REPORT, 0);
-                    usleep(100000);
-                    printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
-                    break;
-                }
-            }
         }
     }
     ioctl(fd2, UI_DEV_DESTROY);
     close(fd2);
-
-
 
 
     while (1) {
