@@ -1,74 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
-#include <signal.h>
-#include <regex.h>
+#include <linux/uinput.h>
 
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_RESET   "\x1b[0m"
 
+
 char pattern[100] = "";
 int keyc = -1;
-
-char grave[10] = "";
-
-FILE* fp;
-char mpos[50];
-regex_t regex;
-int reti;
-const char *mregex = "x:([0-9]+) y:([0-9]+)";
-size_t nmatch = 3;
-regmatch_t pmatch[3];
+int nlstate;
 
 static void run_hold() {
     int len = strlen(pattern);
-    // vvv Your code goes here vvv
-    switch (keyc) {
-        case 164:
-            system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
-            memset(pattern, 0, sizeof(pattern));
-            break;
-        case 163:
-            system("playerctl --player=spotify,youtube-music,cmus,%%any position 5+");
-            memset(pattern, 0, sizeof(pattern));
-            break;
-        case 165:
-            system("playerctl --player=spotify,youtube-music,cmus,%%any position 5-");
-            memset(pattern, 0, sizeof(pattern));
-            break;
-    }
-    // ^^^ Your code goes here ^^^
+    //! vvv Your code goes here vvv
+
+    //! ^^^ Your code goes here ^^^
 }
 
 static void run_pattern() {
     int len = strlen(pattern);
-    // vvv Your code goes here vvv
     if (len >= 1) {
-        switch (keyc) {
-        case 96:
-            break;
-        case 164:
-            system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
-            break;
-        case 163:
-            for(int i = 0; i < len; i++) {
-                system("playerctl --player=spotify,youtube-music,cmus,%%any next");
-            } 
-            break;
-        case 165:
-            for(int i = 0; i < len; i++) {
-                system("playerctl --player=spotify,youtube-music,cmus,%%any previous");
-            } 
-            break;
-        }
+    //! vvv Your code goes here vvv
+
+    //! ^^^ Your code goes here ^^^
     }
-    // ^^^ Your code goes here ^^^
     memset(pattern, 0, sizeof(pattern));
 }
 
+
+static void emit(int fd, int type, int code, int val) {
+    struct input_event ie;
+    ie.type = type;
+    ie.code = code;
+    ie.value = val;
+
+    write(fd, &ie, sizeof(ie));
+}
 
 int main(int argc, char **argv)
 {
@@ -103,6 +75,74 @@ int main(int argc, char **argv)
     sprintf(dbus_addr, "unix:path=/run/user/%d/bus", uid);
     setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr, 1);
 
+    
+    fd_set readfds;
+    struct timeval timeout;
+    struct uinput_setup usetup;
+    int fd2 = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+
+    ioctl(fd2, UI_SET_EVBIT, EV_KEY);
+    ioctl(fd2, UI_SET_KEYBIT, KEY_NUMLOCK);
+
+    memset(&usetup, 0, sizeof(usetup));
+    usetup.id.bustype = BUS_USB;
+    strcpy(usetup.name, "ev-morse numlock");
+
+    ioctl(fd2, UI_DEV_SETUP, &usetup);
+    ioctl(fd2, UI_DEV_CREATE);
+    sleep(1);    
+
+    emit(fd2, EV_KEY, KEY_NUMLOCK, 1);
+    emit(fd2, EV_SYN, SYN_REPORT, 0);
+    emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
+    emit(fd2, EV_SYN, SYN_REPORT, 0);
+
+    // clear the file descriptor set
+    FD_ZERO(&readfds);
+    // add stdin and keyboard to the file descriptor set
+    FD_SET(STDIN_FILENO, &readfds);
+    FD_SET(fd, &readfds);
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 1000000;
+    int ret = select(fd + 1, &readfds, NULL, NULL, &timeout);
+    while (1) {
+        if (ret == -1) {
+            perror("select");
+            exit(1);
+        } else if (ret == 0) {
+            break;
+        } else {
+            struct input_event ev;
+            int n = read(fd, &ev, sizeof(ev));
+            if (n == -1) {
+                perror("read");
+                exit(1);
+            } else if (n == 0) {
+                // printf("??\n");
+                break;
+            } else {
+                if (ev.type == EV_LED) {
+                    printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
+                    fflush(stdout);
+                    nlstate = !ev.value;
+                    emit(fd2, EV_KEY, KEY_NUMLOCK, 1);
+                    emit(fd2, EV_SYN, SYN_REPORT, 0);
+                    emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
+                    emit(fd2, EV_SYN, SYN_REPORT, 0);
+                    usleep(100000);
+                    printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
+                    break;
+                }
+            }
+        }
+    }
+    ioctl(fd2, UI_DEV_DESTROY);
+    close(fd2);
+
+
+
+
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
             perror("Error reading");
@@ -127,6 +167,10 @@ int main(int argc, char **argv)
             } else if (ev.value == 1) {
                 hold = 0;
             } else if (ev.value == 0) {
+                if (keyc == 69) {
+                    nlstate = !nlstate;
+                    printf("Numlock State %d \n", nlstate);
+                }
                 if (strlen(pattern) == 0 && hold > interval) {
                     hold = 0;
                     printf("Key code: %d, Value: %s \n", ev.code, pattern);
