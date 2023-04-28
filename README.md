@@ -22,9 +22,9 @@ Send numlock via [uinput](https://www.kernel.org/doc/html/v4.12/input/uinput.htm
 then reads led output from /dev/input to determine nlstate, `type 17 (EV_LED), code 0 (LED_NUML), value 1`
 
 Comments: <br>
-Pause before writing to uinput for 1 second. <br>
+Pause before writing to uinput for 1 second. Worked with usleep(1.2e5); ,120ms, but timing may vary Ex. Ran from python script failed with 1.2e5 timing. <br>
 Time between writes is fast enough that lock keys status in KDE Plasma does not respond. <br>
-Code starting to feel bulky without modifiers being added yet.
+Code starting to feel bulky.
 
 <br>
 
