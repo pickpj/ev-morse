@@ -9,6 +9,11 @@ Have hold / pattern values with each key in a tuple? <[keycode, hold, pattern?],
 Completely rewrite logic :( <br>
 Can't rely on itimer anymore? multithread?
 
+lazy solution for now, bool for each modifier key. ✔️
+- Cant have bindings on shift, alt, ctrl (no longer show in key code outputs)
+- Not sure if it is the most efficient (Every key event has to perform 6 more checks)
+  - if (ev.code == 97 | ev.code == 29 | ev.code == 54 | ev.code == 42 | ev.code == 100 | ev.code == 56)
+
 
 
 ~~Also want to discern between numpad numbers and numpad functions.~~ <br>
