@@ -85,11 +85,11 @@ int main(int argc, char **argv)
 {
     int fd;
     struct input_event ev;
-    if (argc < 2) {
-        printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s <input device> \n", argv[0]);
+    if (argc < 3) {
+        printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s $(id -u) <input device>\n", argv[0]);
         return 1;
     }
-    fd = open(argv[1], O_RDONLY);
+    fd = open(argv[2], O_RDONLY);
     if (fd < 0) {
         perror("Failed to open device");
         return 1;
@@ -109,7 +109,8 @@ int main(int argc, char **argv)
     signal(SIGALRM, run_pattern);
 
     char dbus_addr[50];
-    setuid(1000);
+    int argid = atoi(argv[1]);
+    setuid(argid);
     uid_t uid = getuid();
     sprintf(dbus_addr, "unix:path=/run/user/%d/bus", uid);
     setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr, 1);
