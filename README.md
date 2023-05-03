@@ -2,23 +2,24 @@
 The code allows for the binding of multiple commands to a single key. (single, double, long press, ... any morse combination) <br>
 Additionally there is a secondary function (run_hold) to repeat commands when being held down longer. <br>
 Uses root privileges because it reads output from /dev/input. <br>
-¯\\_ (ツ) _/¯ <i>oh well</i>, So be sure to read the code, the non-personalized sections of code are ~100 lines.
+So be sure to read the code.
 
 # Usage
-The number following event varies, check with `sudo evtest /dev/input/event0` and increasing the number gradually
+The number following event varies, check with `sudo evtest /dev/input/event0` increasing the number gradually
 ```
 gcc -o evmorse evmorse.c
-sudo ./evmorse /dev/input/event0
+sudo ./evmorse $(id -u) /dev/input/event0
 ```
-The first line compiles the code, then the second line runs the program on event##. <br>
+The first line compiles the code, then the second line runs the program on event##, using the uid from id -u. <br>
 Try typing! Once you see the output you can get a better understanding of when commands execute.
 
 # Changing bindings
 The key codes will vary from device to device.<br>
 &emsp; *IMPORTANT!* &emsp; Keycodes differ between X11 and /dev &ensp; (Ex. For me numpad minus is 82 in xev, but 74 in evtest)<br>
+Variables {nlstate; shiftstate; ctrlstate; altstate} can be used to have different behavior when modifiers are pressed or the numlock is off/on.
 
 ## run_hold and run_pattern
-The code is separated into two functions.
+The code is separated into two functions. <br>
 run_hold - For long key presses we can execute a command as the key is held down (think of a fast-forward function on a remote) <br>
 run_pattern - This is for executing commands based on a morse pattern (01 = short | long; 110 = long | long | short; etc.) <br>
 For a key that is defined in both functions we may not want to run the pattern after the hold function, thus we must reset the value of the pattern variable with <br>
@@ -66,7 +67,7 @@ static void run_pattern() {
 }
 ```
 `keyc` is the variable holding the key code value, to find the keycode use `sudo evtest /dev/input/event0`. (Make sure to set the correct event, look at Usage) <br>
-`system()` allows us to run commands as if they were run from the terminal. It is under the assumption that UID is 1000. <br>
+`system()` allows us to run commands as if they were run from the terminal. It is ran under the bus of the UID returned by (id -u). <br>
 In the above example a short key press of the key with code 163 would result in "playerctl next" executing &emsp;(next song). <br>
 However, when holding the key, "playerctl position 5+" in the run_hold function would execute instead &emsp;(fast forward). <br>
 Additionally, (after fast forwarding) because we used `memset` the pattern variable is empty and fails the `if(len >=1)` check. Preventing the run_pattern function from executing any commands. <br>
@@ -94,12 +95,7 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
 ![key](https://user-images.githubusercontent.com/118209356/230539020-6f826b2f-e3b0-4eb2-877c-d4fb2ba25c7e.png)
 
 
-
-# Dependencies
-gcc and gcc-libs ? I think, but am not sure.
-
 # Quirks
-- After opening the /dev/input the UID is changed to 1000 (default non root user). This could be changed if we wanted to run commands as a different user.
 - The low level manner in which the keyboard is capture means that functions work when a key is disabled with xmodmap
 - Can be used with more than just the keyboard, can interact with anything that outputs to events (may need to modify some code) 
     - Ex. In evtest the laptop lid switch outputs show up  as  
