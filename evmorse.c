@@ -20,6 +20,7 @@ int altstate = 0;
 
 
 // User defined functions run_hold and run_pattern
+
 static void run_hold() {
     int len = strlen(pattern);
     // vvv Your code goes here vvv
