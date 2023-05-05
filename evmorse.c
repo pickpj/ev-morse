@@ -213,48 +213,30 @@ int main(int argc, char **argv)
     return 0;
 }
 
+// Functions used by the main loop
 static void setmodifier(int keycode, int value) {
     switch (keycode) {
         case 42: //lshift
         case 54: //rshift
-            if (value == 1) {
-                shiftstate = 1;
-                printf("shift on\n");
-                fflush(stdout);
-            } else {
-                shiftstate = 0;
-                printf("shift off\n");
-                fflush(stdout);
-            }
+            shiftstate = value;
+            printf("Shift State %d\n",shiftstate);
+            fflush(stdout);
             break;
         case 29: //lctrl
         case 97: //rctrl
-            if (value == 1) {
-                ctrlstate = 1;
-                printf("ctrl on\n");
-                fflush(stdout);
-            } else {
-                ctrlstate = 0;
-                printf("ctrl off\n");
-                fflush(stdout);
-            }
+            ctrlstate = value;
+            printf("Ctrl State %d\n",ctrlstate);
+            fflush(stdout);
             break;
         case 56: //lalt
         case 100: //ralt
-            if (value == 1) {
-                altstate = 1;
-                printf("alt on\n");
-                fflush(stdout);
-            } else {
-                altstate = 0;
-                printf("alt off\n");
-                fflush(stdout);
-            }
+            altstate = value;
+            printf("Alt State %d\n",altstate);
+            fflush(stdout);
             break;
     }
 }
 
-// Functions used by the main loop
 static void emit(int fd, int type, int code, int val) {
     struct input_event ie;
     ie.type = type;
