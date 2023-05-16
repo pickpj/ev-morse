@@ -5,7 +5,7 @@ Uses root privileges because it reads output from /dev/input. <br>
 So be sure to read the code.
 
 # Usage
-The number following event varies, check with `sudo evtest /dev/input/event0` increasing the number gradually
+The number following event varies, check which device you would like to interface with, with `sudo evtest`
 ```
 gcc -o evmorse evmorse.c
 sudo ./evmorse $(id -u) /dev/input/event0
@@ -95,7 +95,7 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
 ![key](https://user-images.githubusercontent.com/118209356/230539020-6f826b2f-e3b0-4eb2-877c-d4fb2ba25c7e.png)
 
 
-# Quirks
+# Quirks / Extra
 - The low level manner in which the keyboard is capture means that functions work when a key is disabled with xmodmap
 - Can be used with more than just the keyboard, can interact with anything that outputs to events (may need to modify some code) 
     - Ex. In evtest the laptop lid switch outputs show up  as  
@@ -109,6 +109,7 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
     - Also would need to remove the Numlock uinput section (the lines with emit() and while loop), and check if there are no interferences with the keycodes reserved for modifiers keys (29,42,54,56,97,100).
 - Depending on what you are doing, it may help to append an & at the end of the `system()` command. &emsp; [more info](https://stackoverflow.com/questions/6962156/is-there-a-way-to-not-wait-for-a-system-command-to-finish-in-c) However, this may introduce race conditions, with commands competing over the same resources at the same time.
 - More on interactions with [fn key](https://askubuntu.com/questions/270416/how-do-fn-keys-work)
+- If .Xmodmap isn't enough for disabling a key (some keys are still picked up by browsers; eg. F7) [this wiki](https://wiki.archlinux.org/title/Map_scancodes_to_keycodes) covers how to remap it to an unused key, maybe f13-f24.
 
 # More binding examples
 My audio control setup:
