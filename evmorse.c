@@ -23,7 +23,7 @@ int altstate = 0;
 
 static void run_hold() {
     int len = strlen(pattern);
-    // vvv Your code goes here vvv
+    //! vvv Your code goes here vvv
     switch (keyc) {
         case 164:
             system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
@@ -38,13 +38,13 @@ static void run_hold() {
             memset(pattern, 0, sizeof(pattern));
             break;
     }
-    // ^^^ Your code goes here ^^^
+    //! ^^^ Your code goes here ^^^
 }
 
 static void run_pattern() {
     int len = strlen(pattern);
     if (len >= 1) {
-    // vvv Your code goes here vvv
+    //! vvv Your code goes here vvv
         switch (keyc) {
         case 96:
             break;
@@ -74,11 +74,11 @@ static void run_pattern() {
             break;
         }
     }
-    // ^^^ Your code goes here ^^^
+    //! ^^^ Your code goes here ^^^
     memset(pattern, 0, sizeof(pattern));
 }
 
-// main function declarations 
+// Function declarations for main
 static void emit(int fd, int type, int code, int val);
 static void setmodifier(int keycode, int value);
 
@@ -86,6 +86,7 @@ int main(int argc, char **argv)
 {
     int fd;
     struct input_event ev;
+    // Check for proper input of command
     if (argc < 3) {
         printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s $(id -u) <input device>\n", argv[0]);
         return 1;
@@ -97,18 +98,20 @@ int main(int argc, char **argv)
     }
     int hold = 0;
 
-    // ADJUST TIMINGS HERE
+    //! ADJUST TIMINGS HERE
     struct itimerval timer;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 300000;
 
-    // Timing between key held action
+    // Timing between key held action (30ms x interval)
     int interval = 10;
 
     signal(SIGALRM, run_pattern);
 
+    // Changing dbus so that commands execute as the user (important for interactions with playerctl)
+    // Could be removed to run all commands as sudo
     char dbus_addr[50];
     int argid = atoi(argv[1]);
     setuid(argid);
@@ -116,12 +119,14 @@ int main(int argc, char **argv)
     sprintf(dbus_addr, "unix:path=/run/user/%d/bus", uid);
     setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr, 1);
 
-    
+    // Creates a "fake" device that sends 2 numlock key presses
+    // This is to determine whether numlock is on/off
     fd_set readfds;
     struct timeval timeout;
     struct uinput_setup usetup;
     int fd2 = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
 
+    // This device is only able to send a numlock key
     ioctl(fd2, UI_SET_EVBIT, EV_KEY);
     ioctl(fd2, UI_SET_KEYBIT, KEY_NUMLOCK);
 
@@ -153,20 +158,24 @@ int main(int argc, char **argv)
             break;
         }
     }
+    // Device is destroyed
     ioctl(fd2, UI_DEV_DESTROY);
     close(fd2);
 
 
+    // The "main" loop that will run continuously
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
             perror("Error reading");
             break;
         }
         if (ev.type == EV_KEY) {
+            // Checks for modifier keys
             if (ev.code == 97 | ev.code == 29 | ev.code == 54 | ev.code == 42 | ev.code == 100 | ev.code == 56) {
                 if (ev.value != 2) {
                     setmodifier(ev.code, ev.value);
                 }
+            // Checks whether the key has changed
             } else if (keyc != ev.code && keyc != -1) {
                 memset(pattern, 0, sizeof(pattern));
                 keyc = ev.code;
