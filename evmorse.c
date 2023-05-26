@@ -78,7 +78,7 @@ static void run_pattern() {
     memset(pattern, 0, sizeof(pattern));
 }
 
-// Function declarations for main
+// Function declarations for main (Found near the end)
 static void emit(int fd, int type, int code, int val);
 static void setmodifier(int keycode, int value);
 
@@ -107,7 +107,8 @@ int main(int argc, char **argv)
 
     // Timing between key held action (30ms x interval)
     int interval = 10;
-
+    
+    // Set signal to run the function: run_pattern
     signal(SIGALRM, run_pattern);
 
     // Changing dbus so that commands execute as the user (important for interactions with playerctl)
@@ -159,6 +160,8 @@ int main(int argc, char **argv)
         }
     }
     // Device is destroyed
+    // * One could prevent destruction of the device, and declare the emit functions before the user functions. 
+    // * Then use emit in the user functions to send keystrokes rather than relying on xdotool.
     ioctl(fd2, UI_DEV_DESTROY);
     close(fd2);
 
@@ -181,6 +184,7 @@ int main(int argc, char **argv)
                 keyc = ev.code;
             } else {
                 keyc = ev.code;
+                // value 2; key held down
                 if (ev.value == 2) {
                     if (hold < 1){
                         strcat(pattern,"1");
@@ -191,8 +195,10 @@ int main(int argc, char **argv)
                     } else {
                         hold ++;
                     }
+                // value 1; key down
                 } else if (ev.value == 1) {
                     hold = 0;
+                // value 0; key up
                 } else if (ev.value == 0) {
                     if (keyc == 69) {
                         nlstate = !nlstate;
@@ -213,7 +219,7 @@ int main(int argc, char **argv)
                         fflush(stdout);
                     }
                 }
-
+            // Set / Reset timer to trigger the signal (run_pattern)
             setitimer(ITIMER_REAL, &timer, NULL);
             }
         }
