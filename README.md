@@ -110,6 +110,7 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
 - Depending on what you are doing, it may help to append an & at the end of the `system()` command. &emsp; [more info](https://stackoverflow.com/questions/6962156/is-there-a-way-to-not-wait-for-a-system-command-to-finish-in-c) However, this may introduce race conditions, with commands competing over the same resources at the same time.
 - More on interactions with [fn key](https://askubuntu.com/questions/270416/how-do-fn-keys-work)
 - If .Xmodmap isn't enough for disabling a key (some keys are still picked up by browsers; eg. F7) [this wiki](https://wiki.archlinux.org/title/Map_scancodes_to_keycodes) covers how to remap it to an unused key, maybe f13-f24.
+- Still works when you switch tty's, probably a con, depending on your use case.
 
 # More binding examples
 My audio control setup:
