@@ -17,8 +17,9 @@ int nlstate;
 int shiftstate = 0;
 int ctrlstate = 0;
 int altstate = 0;
-struct libevdev_uinput *uidev;
 
+int fd;
+struct libevdev_uinput *uidev;
 
 // User defined functions run_hold and run_pattern
 static void run_hold() {
@@ -81,66 +82,11 @@ static void run_pattern() {
 
 // Function declarations for main (Found near the end)
 static void setmodifier(int keycode, int value);
-
-
-
-if (ev.type == EV_KEY) {
-            // Checks for modifier keys
-            if (ev.code == 97 | ev.code == 29 | ev.code == 54 | ev.code == 42 | ev.code == 100 | ev.code == 56) {
-                if (ev.value != 2) {
-                    setmodifier(ev.code, ev.value);
-                }
-            // Checks whether the key has changed
-            } else if (keyc != ev.code && keyc != -1) {
-                memset(pattern, 0, sizeof(pattern));
-                keyc = ev.code;
-            } else {
-                keyc = ev.code;
-                // value 2; key held down
-                if (ev.value == 2) {
-                    if (hold < 1){
-                        strcat(pattern,"1");
-                        hold++;
-                    } else if (hold % interval == (interval - 1)) {
-                        run_hold();
-                        hold ++;
-                    } else {
-                        hold ++;
-                    }
-                // value 1; key down
-                } else if (ev.value == 1) {
-                    hold = 0;
-                // value 0; key up
-                } else if (ev.value == 0) {
-                    if (keyc == 69) {
-                        nlstate = !nlstate;
-                        printf("Numlock State %d \n", nlstate);
-                    }
-                    if (strlen(pattern) == 0 && hold > interval) {
-                        hold = 0;
-                        printf("Key code: %d, Value: %s \n", ev.code, pattern);
-                        fflush(stdout);
-                        memset(pattern, 0, sizeof(pattern));
-                    } else if (hold > 0) {
-                        hold = 0;
-                        printf("Key code: %d, Value: %s \n", ev.code, pattern);
-                        fflush(stdout);
-                    } else {
-                        strcat(pattern,"0");
-                        printf("Key code: %d, Value: %s \n", ev.code, pattern);
-                        fflush(stdout);
-                    }
-                }
-            // Set / Reset timer to trigger the signal (run_pattern)
-            setitimer(ITIMER_REAL, &timer, NULL);
-            }
-
-
+static void exitsignal();
 
 int main(int argc, char **argv)
 {
     // Check for proper input of command
-    int fd;
     struct input_event ev;
     if (argc < 3) {
         printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s $(id -u) <input device>\n", argv[0]);
@@ -165,6 +111,8 @@ int main(int argc, char **argv)
 
     // Set signal to run the function: run_pattern
     signal(SIGALRM, run_pattern);
+    // Set signal for exiting the program (ctrl+c)
+    signal(SIGINT, exitsignal);
 
     // Changing dbus so that commands execute as the user (defined by '$(id -u)' ; important for interactions with playerctl)
     // Could be removed to run all commands as sudo
@@ -185,6 +133,10 @@ int main(int argc, char **argv)
     // This device is only able to send a numlock key
     libevdev_enable_event_type (dev, EV_KEY);
     libevdev_enable_event_code (dev, EV_KEY, KEY_NUMLOCK, NULL);
+    libevdev_enable_event_code(dev, EV_KEY, KEY_A, NULL);
+    libevdev_enable_event_code(dev, EV_KEY, KEY_GRAVE, NULL);
+    libevdev_enable_event_code(dev, EV_KEY, KEY_LEFTSHIFT, NULL);
+
 
     err = libevdev_uinput_create_from_device (dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
     if (err != 0) {
@@ -217,7 +169,7 @@ int main(int argc, char **argv)
     // Device is destroyed
     // * One could prevent destruction of the device, and enable the event codes to use, libevdev_enable_event_code. 
     // * Then use libevdev_uinput_write_event in the user functions to send keystrokes rather than relying on xdotool.
-    libevdev_uinput_destroy (uidev);
+    // libevdev_uinput_destroy (uidev);
 
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
@@ -276,8 +228,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    close(fd);
-    return 0;
 }
 
 // Functions used by the main loop
@@ -304,3 +254,9 @@ static void setmodifier(int keycode, int value) {
     }
 }
 
+static void exitsignal() {
+    printf("SIGINT signal recieved");
+    libevdev_uinput_destroy (uidev);
+    close(fd);
+    exit(0);
+}
