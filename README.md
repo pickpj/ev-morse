@@ -5,16 +5,16 @@ Uses root privileges because it reads output from /dev/input. <br>
 So be sure to read the code.
 
 # Usage
-The number following event varies, check with `sudo evtest /dev/input/event0` increasing the number gradually
+The number following event varies, check which device you would like to interface with, with `sudo evtest`
 ```
-gcc -o evmorse evmorse.c
+gcc $(pkg-config --libs --cflags libevdev) -o evmorse evmorse.c
 sudo ./evmorse $(id -u) /dev/input/event0
 ```
 The first line compiles the code, then the second line runs the program on event##, using the uid from id -u. <br>
 Try typing! Once you see the output you can get a better understanding of when commands execute.
 
 # Changing bindings
-The key codes will vary from device to device.<br>
+The key codes may vary from device to device.<br>
 &emsp; *IMPORTANT!* &emsp; Keycodes differ between X11 and /dev &ensp; (Ex. For me numpad minus is 82 in xev, but 74 in evtest)<br>
 Variables {nlstate; shiftstate; ctrlstate; altstate} can be used to have different behavior when modifiers are pressed or the numlock is off/on.
 
@@ -95,7 +95,7 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
 ![key](https://user-images.githubusercontent.com/118209356/230539020-6f826b2f-e3b0-4eb2-877c-d4fb2ba25c7e.png)
 
 
-# Quirks
+# Quirks / Extra
 - The low level manner in which the keyboard is capture means that functions work when a key is disabled with xmodmap
 - Can be used with more than just the keyboard, can interact with anything that outputs to events (may need to modify some code) 
     - Ex. In evtest the laptop lid switch outputs show up  as  
@@ -106,8 +106,11 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
     Event: time 1681146032.121323, -------------- SYN_REPORT ------------
     ```
     - If we changed `if(ev.type == EV_KEY)` to EV_SW we are able to execute commands under code 0. ([more info on event types](https://www.kernel.org/doc/html/v4.17/input/event-codes.html#event-types))
+    - Also would need to remove the Numlock uinput section (the lines with emit() and while loop), and check if there are no interferences with the keycodes reserved for modifiers keys (29,42,54,56,97,100).
 - Depending on what you are doing, it may help to append an & at the end of the `system()` command. &emsp; [more info](https://stackoverflow.com/questions/6962156/is-there-a-way-to-not-wait-for-a-system-command-to-finish-in-c) However, this may introduce race conditions, with commands competing over the same resources at the same time.
 - More on interactions with [fn key](https://askubuntu.com/questions/270416/how-do-fn-keys-work)
+- If .Xmodmap isn't enough for disabling a key (some keys are still picked up by browsers; eg. F7) [this wiki](https://wiki.archlinux.org/title/Map_scancodes_to_keycodes) covers how to remap it to an unused key, maybe f13-f24.
+- Still works when you switch tty's, probably a con, depending on your use case.
 
 # More binding examples
 My audio control setup:
