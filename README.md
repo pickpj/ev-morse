@@ -158,6 +158,18 @@ My audio control setup:
             break;
         }
 ```
+Send key presses without using xdotool. <br> This example presses grave key while shift is held down for a tilde ~<br>
+\* ensure that the device is not destroyed (by libevdev_uinput_destroy (uidev);) and that the key codes to be used are defined (with libevdev_enable_event_code (dev, EV_KEY, KEY_~~~, NULL);)
+```
+                    libevdev_uinput_write_event (uidev, EV_KEY, KEY_LEFTSHIFT, 1);
+                    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                    libevdev_uinput_write_event (uidev, EV_KEY, KEY_GRAVE, 1);
+                    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                    libevdev_uinput_write_event (uidev, EV_KEY, KEY_GRAVE, 0);
+                    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                    libevdev_uinput_write_event (uidev, EV_KEY, KEY_LEFTSHIFT, 0);
+                    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+```
 Send left click to position (w/ xdotool): <br>
 \* Uses regex to parse output of xdotool getmouselocation, which is why it's so bulky *
 ```

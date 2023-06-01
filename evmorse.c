@@ -133,10 +133,6 @@ int main(int argc, char **argv)
     // This device is only able to send a numlock key
     libevdev_enable_event_type (dev, EV_KEY);
     libevdev_enable_event_code (dev, EV_KEY, KEY_NUMLOCK, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_A, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_GRAVE, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_LEFTSHIFT, NULL);
-
 
     err = libevdev_uinput_create_from_device (dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
     if (err != 0) {
