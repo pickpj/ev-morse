@@ -4,8 +4,8 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
-// #include <linux/input.h>
-#include <linux/uinput.h>
+#include <libevdev/libevdev.h>
+#include <libevdev/libevdev-uinput.h>
 
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_RESET   "\x1b[0m"
@@ -18,9 +18,10 @@ int shiftstate = 0;
 int ctrlstate = 0;
 int altstate = 0;
 
+int fd;
+struct libevdev_uinput *uidev;
 
 // User defined functions run_hold and run_pattern
-
 static void run_hold() {
     int len = strlen(pattern);
     //! vvv Your code goes here vvv
@@ -78,13 +79,14 @@ static void run_pattern() {
     memset(pattern, 0, sizeof(pattern));
 }
 
+
 // Function declarations for main (Found near the end)
-static void emit(int fd, int type, int code, int val);
 static void setmodifier(int keycode, int value);
+static void exitsignal();
 
 int main(int argc, char **argv)
 {
-    int fd;
+    // Check for proper input of command
     struct input_event ev;
     // Check for proper input of command
     if (argc < 3) {
@@ -98,20 +100,22 @@ int main(int argc, char **argv)
     }
     int hold = 0;
 
-    //! ADJUST TIMINGS HERE
+    //^ ADJUST TIMINGS HERE
     struct itimerval timer;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 300000;
 
-    // Timing between key held action (30ms x interval)
+    //^ Timing between key held action (30ms * interval)
     int interval = 10;
-    
+
     // Set signal to run the function: run_pattern
     signal(SIGALRM, run_pattern);
+    // Set signal for exiting the program (ctrl+c)
+    signal(SIGINT, exitsignal);
 
-    // Changing dbus so that commands execute as the user (important for interactions with playerctl)
+    // Changing dbus so that commands execute as the user (defined by '$(id -u)' ; important for interactions with playerctl)
     // Could be removed to run all commands as sudo
     char dbus_addr[50];
     int argid = atoi(argv[1]);
@@ -122,49 +126,47 @@ int main(int argc, char **argv)
 
     // Creates a "fake" device that sends 2 numlock key presses
     // This is to determine whether numlock is on/off
-    fd_set readfds;
-    struct timeval timeout;
-    struct uinput_setup usetup;
-    int fd2 = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+    int err;
+    struct libevdev *dev;
+    dev = libevdev_new ();
+    libevdev_set_name (dev, "ev-morse numlock");
 
     // This device is only able to send a numlock key
-    ioctl(fd2, UI_SET_EVBIT, EV_KEY);
-    ioctl(fd2, UI_SET_KEYBIT, KEY_NUMLOCK);
+    libevdev_enable_event_type (dev, EV_KEY);
+    libevdev_enable_event_code (dev, EV_KEY, KEY_NUMLOCK, NULL);
 
-    memset(&usetup, 0, sizeof(usetup));
-    usetup.id.bustype = BUS_USB;
-    strcpy(usetup.name, "ev-morse numlock");
-
-    ioctl(fd2, UI_DEV_SETUP, &usetup);
-    ioctl(fd2, UI_DEV_CREATE);
+    err = libevdev_uinput_create_from_device (dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
+    if (err != 0) {
+        return err;
+    }
     sleep(1);    
 
-    emit(fd2, EV_KEY, KEY_NUMLOCK, 1);
-    emit(fd2, EV_SYN, SYN_REPORT, 0);
-    emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
-    emit(fd2, EV_SYN, SYN_REPORT, 0);
+    // Send Numlock
+    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
+    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
+    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
 
+    // Listen and Send Numlock upon LED event
     while (1) {
         struct input_event ev;
         int n = read(fd, &ev, sizeof(ev));
         if (ev.type == EV_LED) {
             printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
             fflush(stdout);
-            emit(fd2, EV_KEY, KEY_NUMLOCK, 1);
-            emit(fd2, EV_SYN, SYN_REPORT, 0);
-            emit(fd2, EV_KEY, KEY_NUMLOCK, 0);
-            emit(fd2, EV_SYN, SYN_REPORT, 0);
+            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
+            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
+            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
             nlstate = !ev.value;
             printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
             break;
         }
     }
     // Device is destroyed
-    // * One could prevent destruction of the device, and declare the emit functions before the user functions. 
-    // * Then use emit in the user functions to send keystrokes rather than relying on xdotool.
-    ioctl(fd2, UI_DEV_DESTROY);
-    close(fd2);
-
+    // * One could prevent destruction of the device, and enable the event codes to use, libevdev_enable_event_code. 
+    // * Then use libevdev_uinput_write_event in the user functions to send keystrokes rather than relying on xdotool.
+    // libevdev_uinput_destroy (uidev);
 
     // The "main" loop that will run continuously
     while (1) {
@@ -224,8 +226,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    close(fd);
-    return 0;
 }
 
 // Functions used by the main loop
@@ -252,11 +252,9 @@ static void setmodifier(int keycode, int value) {
     }
 }
 
-static void emit(int fd, int type, int code, int val) {
-    struct input_event ie;
-    ie.type = type;
-    ie.code = code;
-    ie.value = val;
-
-    write(fd, &ie, sizeof(ie));
+static void exitsignal() {
+    printf("SIGINT signal recieved");
+    libevdev_uinput_destroy (uidev);
+    close(fd);
+    exit(0);
 }
