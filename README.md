@@ -106,7 +106,7 @@ If my explanations suck here is a picture that hopefully sucks less. <br>
     Event: time 1681146032.121323, -------------- SYN_REPORT ------------
     ```
     - If we changed `if(ev.type == EV_KEY)` to EV_SW we are able to execute commands under code 0. ([more info on event types](https://www.kernel.org/doc/html/v4.17/input/event-codes.html#event-types))
-    - Also would need to remove the Numlock uinput section (the lines with emit() and while loop), and check if there are no interferences with the keycodes reserved for modifiers keys (29,42,54,56,97,100).
+    - Also would need to remove the Numlock libevdev section (the lines with libevdev_uinput_write_event and the while loop), and check if there are no interferences with the keycodes reserved for modifiers keys (29,42,54,56,97,100).
 - Depending on what you are doing, it may help to append an & at the end of the `system()` command. &emsp; [more info](https://stackoverflow.com/questions/6962156/is-there-a-way-to-not-wait-for-a-system-command-to-finish-in-c) However, this may introduce race conditions, with commands competing over the same resources at the same time.
 - More on interactions with [fn key](https://askubuntu.com/questions/270416/how-do-fn-keys-work)
 - If .Xmodmap isn't enough for disabling a key (some keys are still picked up by browsers; eg. F7) [this wiki](https://wiki.archlinux.org/title/Map_scancodes_to_keycodes) covers how to remap it to an unused key, maybe f13-f24.
