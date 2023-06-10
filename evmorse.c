@@ -88,6 +88,7 @@ int main(int argc, char **argv)
 {
     // Check for proper input of command
     struct input_event ev;
+    // Check for proper input of command
     if (argc < 3) {
         printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s $(id -u) <input device>\n", argv[0]);
         return 1;
@@ -167,6 +168,7 @@ int main(int argc, char **argv)
     // * Then use libevdev_uinput_write_event in the user functions to send keystrokes rather than relying on xdotool.
     // libevdev_uinput_destroy (uidev);
 
+    // The "main" loop that will run continuously
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
             perror("Error reading");
