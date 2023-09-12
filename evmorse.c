@@ -88,9 +88,8 @@ int main(int argc, char **argv)
 {
     // Check for proper input of command
     struct input_event ev;
-    // Check for proper input of command
     if (argc < 3) {
-        printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s $(id -u) <input device>\n", argv[0]);
+        printf(ANSI_RED "Usage: " ANSI_RESET "sudo -E %s $(id -u) <input device>\n", argv[0]);
         return 1;
     }
     fd = open(argv[2], O_RDONLY);
@@ -163,12 +162,13 @@ int main(int argc, char **argv)
             break;
         }
     }
-    // Device is destroyed
-    // * One could prevent destruction of the device, and enable the event codes to use, libevdev_enable_event_code. 
-    // * Then use libevdev_uinput_write_event in the user functions to send keystrokes rather than relying on xdotool.
+    // Device is destroyed upon sigint signal instead of here for those 
+    // who would like to send keystrokes via the virtual keyboard.
+    // This method can be faster than xdotool for more niche key characters.
+    // Device can be destroyed here if desired, but comment out the same line in the exitsignal() function
+
     // libevdev_uinput_destroy (uidev);
 
-    // The "main" loop that will run continuously
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
             perror("Error reading");
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
             // Checks for modifier keys
             if (ev.code == 97 | ev.code == 29 | ev.code == 54 | ev.code == 42 | ev.code == 100 | ev.code == 56) {
                 if (ev.value != 2) {
-                    setmodifier(ev.code, ev.value);
+                    setmodifier(ev.code, ev.value);+
                 }
             // Checks whether the key has changed
             } else if (keyc != ev.code && keyc != -1) {
@@ -202,10 +202,6 @@ int main(int argc, char **argv)
                     hold = 0;
                 // value 0; key up
                 } else if (ev.value == 0) {
-                    if (keyc == 69) {
-                        nlstate = !nlstate;
-                        printf("Numlock State %d \n", nlstate);
-                    }
                     if (strlen(pattern) == 0 && hold > interval) {
                         hold = 0;
                         printf("Key code: %d, Value: %s \n", ev.code, pattern);
@@ -224,9 +220,16 @@ int main(int argc, char **argv)
             // Set / Reset timer to trigger the signal (run_pattern)
             setitimer(ITIMER_REAL, &timer, NULL);
             }
+        } else if (ev.type == EV_LED) {
+            if (ev.code == 0) {
+                lstate = ev.value;
+                printf("Numlock State %d\n",nlstate);
+                fflush(stdout);
+            }
         }
     }
 }
+
 
 // Functions used by the main loop
 static void setmodifier(int keycode, int value) {
