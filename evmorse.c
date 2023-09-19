@@ -178,7 +178,7 @@ int main(int argc, char **argv)
             // Checks for modifier keys
             if (ev.code == 97 | ev.code == 29 | ev.code == 54 | ev.code == 42 | ev.code == 100 | ev.code == 56) {
                 if (ev.value != 2) {
-                    setmodifier(ev.code, ev.value);+
+                    setmodifier(ev.code, ev.value);
                 }
             // Checks whether the key has changed
             } else if (keyc != ev.code && keyc != -1) {
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
             }
         } else if (ev.type == EV_LED) {
             if (ev.code == 0) {
-                lstate = ev.value;
+                nlstate = ev.value;
                 printf("Numlock State %d\n",nlstate);
                 fflush(stdout);
             }
