@@ -1,4 +1,3 @@
-#include <linux/input-event-codes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +6,6 @@
 #include <unistd.h>
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
-
-#include <regex.h>
 
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_RESET   "\x1b[0m"
@@ -24,32 +21,23 @@ int altstate = 0;
 int fd;
 struct libevdev_uinput *uidev;
 
-static void evdev_write(int keyp) {
-    libevdev_uinput_write_event (uidev, EV_KEY, keyp, 1);
-    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-    libevdev_uinput_write_event (uidev, EV_KEY, keyp, 0);
-    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-}
-// User defined functions run_hold and run_patternx
-static void run_down() {
-    switch (keyc) {
-        case 200:
-        case 201:
-            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any play-pause");
-            break;
-        case 163:
-            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any next");
-            break;
-        case 165:
-            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any previous");
-            break;
-    }
-}
-
+// User defined functions run_hold and run_pattern
 static void run_hold() {
     int len = strlen(pattern);
     //! vvv Your code goes here vvv
     switch (keyc) {
+        case 164:
+            system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+        case 163:
+            system("playerctl --player=spotify,youtube-music,cmus,%%any position 5+");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+        case 165:
+            system("playerctl --player=spotify,youtube-music,cmus,%%any position 5-");
+            memset(pattern, 0, sizeof(pattern));
+            break;
     }
     //! ^^^ Your code goes here ^^^
 }
@@ -59,11 +47,38 @@ static void run_pattern() {
     if (len >= 1) {
     //! vvv Your code goes here vvv
         switch (keyc) {
+        case 96:
+            break;
+        case 164:
+            system("playerctl --player=spotify,youtube-music,cmus,%%any play-pause");
+            break;
+        case 163:
+            for(int i = 0; i < len; i++) {
+                system("playerctl --player=spotify,youtube-music,cmus,%%any next");
+            } 
+            break;
+        case 165:
+            for(int i = 0; i < len; i++) {
+                system("playerctl --player=spotify,youtube-music,cmus,%%any previous");
+            } 
+            break;
+        case 74:
+            if (strcmp(pattern,"0") == 0){
+                system("playerctl -p spotify volume 0.5 || playerctl -p youtube-music volume 5 || playerctl --player=cmus,%%any volume 0.5");
+            } else if (strcmp(pattern,"1") == 0) {
+                system("playerctl -p spotify volume 0.7 || playerctl -p youtube-music volume 20 || playerctl --player=cmus,%%any volume 0.7");
+            } else if (len == 2){
+                system("playerctl -p spotify volume 1 || playerctl -p youtube-music volume 50 || playerctl --player=cmus,%%any volume 1");
+            } else {
+                system("playerctl -p spotify volume 1 || playerctl -p youtube-music volume 100 || playerctl --player=cmus,%%any volume 1");
+            }
+            break;
         }
     }
     //! ^^^ Your code goes here ^^^
     memset(pattern, 0, sizeof(pattern));
 }
+
 
 // Function declarations for main (Found near the end)
 static void setmodifier(int keycode, int value);
@@ -74,7 +89,7 @@ int main(int argc, char **argv)
     // Check for proper input of command
     struct input_event ev;
     if (argc < 3) {
-        printf(ANSI_RED "Usage: " ANSI_RESET "sudo %s $(id -u) <input device>\n", argv[0]);
+        printf(ANSI_RED "Usage: " ANSI_RESET "sudo -E %s $(id -u) <input device>\n", argv[0]);
         return 1;
     }
     fd = open(argv[2], O_RDONLY);
@@ -92,7 +107,7 @@ int main(int argc, char **argv)
     timer.it_value.tv_usec = 300000;
 
     //^ Timing between key held action (30ms * interval)
-    int interval = 7;
+    int interval = 10;
 
     // Set signal to run the function: run_pattern
     signal(SIGALRM, run_pattern);
@@ -107,26 +122,49 @@ int main(int argc, char **argv)
         return 1;
     }
 
-
     // Creates a "fake" device that sends 2 numlock key presses
     // This is to determine whether numlock is on/off
     int err;
     struct libevdev *dev;
     dev = libevdev_new ();
-    libevdev_set_name (dev, "ev-headphone");
+    libevdev_set_name (dev, "ev-morse numlock");
 
     // This device is only able to send a numlock key
-    libevdev_enable_event_type(dev, EV_KEY);
-
-    libevdev_enable_event_code(dev, EV_KEY, KEY_VOLUMEUP, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_VOLUMEDOWN, NULL);
-
+    libevdev_enable_event_type (dev, EV_KEY);
+    libevdev_enable_event_code (dev, EV_KEY, KEY_NUMLOCK, NULL);
 
     err = libevdev_uinput_create_from_device (dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
     if (err != 0) {
         return err;
     }
     sleep(1);    
+
+    // Send Numlock
+    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
+    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
+    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+
+    // Listen and Send Numlock upon LED event
+    while (1) {
+        struct input_event ev;
+        int n = read(fd, &ev, sizeof(ev));
+        if (ev.type == EV_LED) {
+            printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
+            fflush(stdout);
+            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
+            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
+            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+            nlstate = !ev.value;
+            printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
+            break;
+        }
+    }
+    // Device is destroyed upon sigint signal instead of here for those 
+    // who would like to send keystrokes via the virtual keyboard.
+    // This method can be faster than xdotool for more niche key characters.
+    // Device can be destroyed here if desired, but comment out the same line in the exitsignal() function
 
     // libevdev_uinput_destroy (uidev);
 
@@ -145,7 +183,6 @@ int main(int argc, char **argv)
             } else if (keyc != ev.code && keyc != -1) {
                 memset(pattern, 0, sizeof(pattern));
                 keyc = ev.code;
-                run_down();
             } else {
                 keyc = ev.code;
                 // value 2; key held down
@@ -153,7 +190,7 @@ int main(int argc, char **argv)
                     if (hold < 1){
                         strcat(pattern,"1");
                         hold++;
-                    } else if ((hold-5) % interval == (interval - 1)) {
+                    } else if (hold % interval == (interval - 1)) {
                         run_hold();
                         hold ++;
                     } else {
@@ -162,7 +199,6 @@ int main(int argc, char **argv)
                 // value 1; key down
                 } else if (ev.value == 1) {
                     hold = 0;
-                    run_down();
                 // value 0; key up
                 } else if (ev.value == 0) {
                     if (strlen(pattern) == 0 && hold > interval) {
@@ -193,6 +229,7 @@ int main(int argc, char **argv)
     }
 }
 
+
 // Functions used by the main loop
 static void setmodifier(int keycode, int value) {
     switch (keycode) {
@@ -218,7 +255,7 @@ static void setmodifier(int keycode, int value) {
 }
 
 static void exitsignal() {
-    printf("SIGINT signal recieved\n");
+    printf("SIGINT signal recieved");
     libevdev_uinput_destroy (uidev);
     close(fd);
     exit(0);
