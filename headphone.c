@@ -99,15 +99,13 @@ int main(int argc, char **argv)
     // Set signal for exiting the program (ctrl+c)
     signal(SIGINT, exitsignal);
 
-    // Changing dbus so that commands execute as the user (defined by '$(id -u)' ; important for interactions with playerctl)
+    // Changing uid so that commands execute as the user (defined by '$(id -u)' ; important for interactions with playerctl)
     // Could be removed to run all commands as sudo
-    char dbus_addr[50];
     int argid = atoi(argv[1]);
-    setuid(argid);
-    uid_t uid = getuid();
-    sprintf(dbus_addr, "unix:path=/run/user/%d/bus", uid);
-    setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr, 1);
-
+    if (setuid(argid) == -1) {
+        perror("setuid");
+        return 1;
+    }
 
     // Creates a "fake" device that sends 2 numlock key presses
     // This is to determine whether numlock is on/off
