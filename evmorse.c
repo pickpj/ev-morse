@@ -5,9 +5,12 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <time.h>
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
 
+#include <regex.h>
 
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_RESET   "\x1b[0m"
@@ -23,13 +26,15 @@ int altstate = 0;
 int fd;
 struct libevdev_uinput *uidev;
 
+
 static void evdev_write(int keyp) {
     libevdev_uinput_write_event (uidev, EV_KEY, keyp, 1);
     libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
     libevdev_uinput_write_event (uidev, EV_KEY, keyp, 0);
     libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
 }
-// User defined functions run_hold and run_patternx
+
+// User defined functions run_hold and run_pattern
 static void run_down() {
     switch (keyc) {
         case 55: // *
@@ -122,6 +127,7 @@ static void run_down() {
             break;
         case 81: // 3
             if (!nlstate) {
+                usleep(250000);
                 evdev_write(KEY_VOLUMEUP);
             } else {
                 evdev_write(KEY_KP3);
@@ -136,7 +142,7 @@ static void run_down() {
             break;
         case 83: // .
             if (!nlstate) {
-                evdev_write(KEY_VOLUMEDOWN);
+                // evdev_write(KEY_VOLUMEDOWN);
             } else {
                 evdev_write(KEY_KPDOT);
             }
@@ -147,33 +153,202 @@ static void run_down() {
             } else {
                 evdev_write(KEY_KPENTER);
             }
-    //     case 98: // /
-    //         if (!nlstate) {
-    //         } else {
-    //             evdev_write(KEY_KPSLASH);      
-    //         }
-    //         break;
+        // case 98: // /
+        //     if (!nlstate) {
+
+        //     } else {
+        //         libevdev_uinput_write_event (uidev, EV_KEY, KEY_KPSLASH, 1);
+        //         libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+        //         libevdev_uinput_write_event (uidev, EV_KEY, KEY_KPSLASH, 0);
+        //         libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+        //     }
+        //     break;
     }
 }
+
 
 static void run_hold() {
     int len = strlen(pattern);
     //! vvv Your code goes here vvv
     switch (keyc) {
+        case 164:
+            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any play-pause");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+        case 163:
+            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any position 5+");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+        case 165:
+            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any position 5-");
+            memset(pattern, 0, sizeof(pattern));
+            break;
+        case 81:
+            if (nlstate == 0) {
+                libevdev_uinput_write_event (uidev, EV_KEY, KEY_VOLUMEUP, 1);
+                libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                libevdev_uinput_write_event (uidev, EV_KEY, KEY_VOLUMEUP, 0);
+                libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+            } else {
+                printf("3");
+                fflush(stdout);
+            }
+            memset(pattern, 0, sizeof(pattern));
+            break;
     }
     //! ^^^ Your code goes here ^^^
 }
 
 static void run_pattern() {
-    int len = strlen(pattern);
-    if (len >= 1) {
-    //! vvv Your code goes here vvv
-        switch (keyc) {
+    int status;
+    int child = fork();
+    if (child == 0) {
+        if (setuid(1000) == -1) {
+            perror("setuid");
+            exit(1);
         }
-    //! ^^^ Your code goes here ^^^
+        int len = strlen(pattern);
+        if (len >= 1) {
+        //! vvv Your code goes here vvv
+            switch (keyc) {
+                case 200:
+                case 201:
+                    system("playerctl -p spotify play-pause");
+                    break;
+                case 164:
+                    if (!strcmp(pattern, "00")) {
+                        system("playerctl -p Blanket play-pause");
+                    } else {
+                    system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any play-pause");
+                    }
+                    break;
+                case 163:
+                    if (!strcmp(pattern, "01")) {
+                        system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any loop | grep Track && playerctl --player=vlc,spotify,youtube-music,cmus,%%any loop None || playerctl --player=vlc,spotify,youtube-music,cmus,%%any loop Track");
+                    } else {
+                        for(int i = 0; i < len; i++) {
+                            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any next");
+                        }
+                    }
+                    break;
+                case 165:
+                    if (!strcmp(pattern, "01")) {
+                        system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any shuffle Toggle");
+                    } else {
+                        for(int i = 0; i < len; i++) {
+                            system("playerctl --player=vlc,spotify,youtube-music,cmus,%%any previous");
+                        } 
+                    }
+                    break;
+                case 74:
+                    if (!strcmp(pattern,"0")) {
+                        system("playerctl --player=vlc,spotify volume 0.5 || playerctl -p youtube-music volume 0.06 || playerctl --player=cmus,%%any volume 0.5");
+                    } else if (!strcmp(pattern,"1")) {
+                        system("playerctl --player=vlc,spotify volume 0.7 || playerctl -p youtube-music volume 0.2 || playerctl --player=cmus,%%any volume 0.7");
+                    } else if (!strcmp(pattern, "00")) {
+                        system("playerctl --player=vlc,spotify volume 1 || playerctl -p youtube-music volume 0.49 || playerctl --player=cmus,%%any volume 1");
+                    } else if (!strcmp(pattern, "11")) {
+                        system("playerctl --player=vlc,spotify volume 0.3 || playerctl -p youtube-music volume 0.02 || playerctl --player=cmus,%%any volume 0.25");
+                    } else {
+                        system("playerctl --player=vlc,spotify volume 1 || playerctl -p youtube-music volume 1 || playerctl --player=cmus,%%any volume 1");
+                    }
+                    break;
+                case 185:
+                    if (!strcmp(pattern, "1")) {
+                        system("gnome-pie -o 272");
+                    } else {
+                        for(int i = 0; i < len; i++) {
+                            libevdev_uinput_write_event (uidev, EV_KEY, KEY_GRAVE, 1);
+                            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                            libevdev_uinput_write_event (uidev, EV_KEY, KEY_GRAVE, 0);
+                            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                        }
+                    }
+                    break;
+                case 81:
+                    libevdev_uinput_write_event (uidev, EV_KEY, KEY_VOLUMEUP, 1);
+                    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                    libevdev_uinput_write_event (uidev, EV_KEY, KEY_VOLUMEUP, 0);
+                    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+                    break;
+            }
+        //! ^^^ Your code goes here ^^^
+        }
+            kill(child, SIGKILL);
+            return;
+        } else if (child > 0) {
+            memset(pattern, 0, sizeof(pattern));
+            waitpid(child,&status,WUNTRACED | WCONTINUED);
+            return;
+        } else {
+        perror("fork");
+        exit(1);
     }
-    memset(pattern, 0, sizeof(pattern));
 }
+
+
+
+
+
+
+
+
+
+static void run_non_alrm(int uid, char *func) {
+    int status;
+    int child = fork();
+    if (child == 0) {
+        if (setuid(uid) == -1) {
+            perror("setuid");
+            exit(1);
+        }
+        if (!strcmp(func, "hold")) {
+            run_hold();
+            memset(pattern, 0, sizeof(pattern));
+        } else if (!strcmp(func, "down")) {
+            run_down();
+        } else {
+            perror("run_non_alrm");
+        }
+        kill(child, SIGKILL);
+        return;
+    } else if (child > 0) {
+        if (!strcmp(func, "hold")) {
+            memset(pattern, 0, sizeof(pattern));            
+        }
+        waitpid(child,&status,WUNTRACED | WCONTINUED);
+        return;
+    } else {
+        perror("fork");
+        exit(1);
+    }
+}
+
+// int main(int argc, char *argv[]) {
+//     char *env[4];
+//     if (argc > 1) {
+//         printf("usage: %s \n", argv[0]);
+//         exit(1);
+//     }
+//     system("whoami");
+//     clock_t begin = clock();
+//     run_non_alrm(1000, *argv);
+//     clock_t end = clock();
+//     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+//     system("whoami");
+//     printf("%f", time_spent);
+//     fflush(stdout);
+// }
+
+
+
+
+
+
+
+
+
+
 
 // Function declarations for main (Found near the end)
 static void setmodifier(int keycode, int value);
@@ -209,15 +384,9 @@ int main(int argc, char **argv)
     // Set signal for exiting the program (ctrl+c)
     signal(SIGINT, exitsignal);
 
-    // Changing dbus so that commands execute as the user (defined by '$(id -u)' ; important for interactions with playerctl)
+    // Changing uid so that commands execute as the user (defined by '$(id -u)' ; important for interactions with playerctl)
     // Could be removed to run all commands as sudo
-    char dbus_addr[50];
-    int argid = atoi(argv[1]);
-    setuid(argid);
-    uid_t uid = getuid();
-    sprintf(dbus_addr, "unix:path=/run/user/%d/bus", uid);
-    setenv("DBUS_SESSION_BUS_ADDRESS", dbus_addr, 1);
-
+    int uid = atoi(argv[1]);
 
     // Creates a "fake" device that sends 2 numlock key presses
     // This is to determine whether numlock is on/off
@@ -233,22 +402,6 @@ int main(int argc, char **argv)
     libevdev_enable_event_code(dev, EV_KEY, KEY_GRAVE, NULL);
     libevdev_enable_event_code(dev, EV_KEY, KEY_LEFTSHIFT, NULL);
     libevdev_enable_event_code(dev, EV_KEY, KEY_VOLUMEUP, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KPDOT, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KPENTER, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP0, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP1, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP2, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP3, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP4, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP5, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP6, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP7, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP8, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KP9, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KPPLUS, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KPMINUS, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KPASTERISK, NULL);
-    libevdev_enable_event_code(dev, EV_KEY, KEY_KPSLASH, NULL);
 
     err = libevdev_uinput_create_from_device (dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
     if (err != 0) {
@@ -257,27 +410,29 @@ int main(int argc, char **argv)
     sleep(1);    
 
     // Send Numlock
-    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
-    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
-    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    // libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
+    // libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    // libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
+    // libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
 
     // Listen and Send Numlock upon LED event
-    while (1) {
-        struct input_event ev;
-        int n = read(fd, &ev, sizeof(ev));
-        if (ev.type == EV_LED) {
-            printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
-            fflush(stdout);
-            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
-            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
-            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-            nlstate = !ev.value;
-            printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
-            break;
-        }
-    }
+    
+    // while (1) {
+    //     struct input_event ev;
+    //     int n = read(fd, &ev, sizeof(ev));
+    //     if (ev.type == EV_LED) {
+    //         printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
+    //         fflush(stdout);
+    //         libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
+    //         libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    //         libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
+    //         libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    //         nlstate = !ev.value;
+    //         printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
+    //         break;
+    //     }
+    // }
+    
     // Device is destroyed upon sigint signal, for those who would like to the virtual keyboard to send input
     // This method can be faster than xdotool for more niche key characters
     // Device can be destroyed here if desired, but comment out the same line in the exitsignal() function
@@ -299,7 +454,7 @@ int main(int argc, char **argv)
             } else if (keyc != ev.code && keyc != -1) {
                 memset(pattern, 0, sizeof(pattern));
                 keyc = ev.code;
-                run_down();
+                run_non_alrm(uid, "down");
             } else {
                 keyc = ev.code;
                 // value 2; key held down
@@ -307,8 +462,9 @@ int main(int argc, char **argv)
                     if (hold < 1){
                         strcat(pattern,"1");
                         hold++;
-                    } else if (hold % interval == (interval - 1)) {
-                        run_hold();
+                    } else if ((hold-5) % interval == (interval - 1)) {
+    
+                        run_non_alrm(uid, "hold");
                         hold ++;
                     } else {
                         hold ++;
@@ -316,7 +472,7 @@ int main(int argc, char **argv)
                 // value 1; key down
                 } else if (ev.value == 1) {
                     hold = 0;
-                    run_down();
+                    run_non_alrm(uid, "down");
                 // value 0; key up
                 } else if (ev.value == 0) {
                     if (strlen(pattern) == 0 && hold > interval) {
@@ -343,6 +499,20 @@ int main(int argc, char **argv)
                 printf("Numlock State %d\n",nlstate);
                 fflush(stdout);
             }
+        } else if (access(argv[2], F_OK) != 0) {
+            printf("lost device: waiting for reconnect\n");
+            fflush(stdout);
+            while (access(argv[2], F_OK) != 0) {
+                usleep(500000); //0.5s
+            }
+
+            fd = open(argv[2], O_RDONLY);
+            if (fd < 0) {
+                perror("Failed to reopen device");
+                return 1;
+            }
+            printf("device reconnected\n");
+            fflush(stdout);
         }
     }
 }
@@ -372,7 +542,7 @@ static void setmodifier(int keycode, int value) {
 }
 
 static void exitsignal() {
-    printf("SIGINT signal recieved\n");
+    printf("SIGINT signal recieved");
     libevdev_uinput_destroy (uidev);
     close(fd);
     exit(0);
