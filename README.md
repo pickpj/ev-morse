@@ -4,6 +4,8 @@ Additionally there is a secondary function (run_hold) to repeat commands when be
 Uses root privileges because it reads output from /dev/input. <br>
 So be sure to read the code.
 
+## Demo
+![demo](https://github.com/pickpj/ev-morse/assets/118209356/70e8d82f-443b-4f98-b833-51a95ce1e891)
 ## [Usage](../../wiki)
 
 ## [Changing bindings](../../wiki#changing-bindings)
