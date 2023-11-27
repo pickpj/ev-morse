@@ -127,7 +127,19 @@ int main(int argc, char **argv)
     int err;
     struct libevdev *dev;
     dev = libevdev_new ();
-    libevdev_set_name (dev, "ev-morse numlock");
+    
+    int i;
+    char devname[100];
+    strcpy(devname, argv[2]);
+    for (i=0; i<strlen(devname); i++) {
+        if(devname[i]=='/'){
+            devname[i]='-';
+        }
+    }
+    char uinputname[100] = "ev";
+    strcat(uinputname, devname);
+    
+    libevdev_set_name (dev, uinputname);
 
     // This device is only able to send a numlock key
     libevdev_enable_event_type (dev, EV_KEY);
