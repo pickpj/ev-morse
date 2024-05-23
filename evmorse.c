@@ -13,6 +13,8 @@
 // main variables
 char pattern[100] = "";
 int keyc = -1;
+int hold = 0;
+int skip = 0;
 int nlstate;
 int shiftstate = 0;
 int ctrlstate = 0;
@@ -97,7 +99,7 @@ int main(int argc, char **argv)
         perror("Failed to open device");
         return 1;
     }
-    int hold = 0;
+    hold = 0;
 
     //^ ADJUST TIMINGS HERE
     struct itimerval timer;
@@ -139,23 +141,25 @@ int main(int argc, char **argv)
     char uinputname[100] = "ev";
     strcat(uinputname, devname);
     
-    libevdev_set_name (dev, uinputname);
+    libevdev_set_name(dev, uinputname);
 
     // This device is only able to send a numlock key
-    libevdev_enable_event_type (dev, EV_KEY);
-    libevdev_enable_event_code (dev, EV_KEY, KEY_NUMLOCK, NULL);
+    libevdev_enable_event_type(dev, EV_KEY);
+    libevdev_enable_event_type(dev, EV_SYN);
+    libevdev_enable_event_code(dev, EV_SYN, SYN_REPORT, NULL);
+    libevdev_enable_event_code(dev, EV_KEY, KEY_NUMLOCK, NULL);
 
-    err = libevdev_uinput_create_from_device (dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
+    err = libevdev_uinput_create_from_device(dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uidev);
     if (err != 0) {
         return err;
     }
     sleep(1);    
 
     // Send Numlock
-    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
-    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-    libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
-    libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+    libevdev_uinput_write_event(uidev, EV_KEY, KEY_NUMLOCK, 1);
+    libevdev_uinput_write_event(uidev, EV_SYN, SYN_REPORT, 0);
+    libevdev_uinput_write_event(uidev, EV_KEY, KEY_NUMLOCK, 0);
+    libevdev_uinput_write_event(uidev, EV_SYN, SYN_REPORT, 0);
 
     // Listen and Send Numlock upon LED event
     while (1) {
@@ -164,10 +168,10 @@ int main(int argc, char **argv)
         if (ev.type == EV_LED) {
             printf("LED event: code=%d, value=%d\n", ev.code, ev.value);
             fflush(stdout);
-            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 1);
-            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
-            libevdev_uinput_write_event (uidev, EV_KEY, KEY_NUMLOCK, 0);
-            libevdev_uinput_write_event (uidev, EV_SYN, SYN_REPORT, 0);
+            libevdev_uinput_write_event(uidev, EV_KEY, KEY_NUMLOCK, 1);
+            libevdev_uinput_write_event(uidev, EV_SYN, SYN_REPORT, 0);
+            libevdev_uinput_write_event(uidev, EV_KEY, KEY_NUMLOCK, 0);
+            libevdev_uinput_write_event(uidev, EV_SYN, SYN_REPORT, 0);
             nlstate = !ev.value;
             printf("LED event: code=%d, value=%d\n", ev.code, !ev.value);
             break;
@@ -178,7 +182,7 @@ int main(int argc, char **argv)
     // This method can be faster than xdotool for more niche key characters.
     // Device can be destroyed here if desired, but comment out the same line in the exitsignal() function
 
-    // libevdev_uinput_destroy (uidev);
+    // libevdev_uinput_destroy(uidev);
 
     while (1) {
         if (read(fd, &ev, sizeof(ev)) < sizeof(ev)) {
@@ -191,10 +195,18 @@ int main(int argc, char **argv)
                 if (ev.value != 2) {
                     setmodifier(ev.code, ev.value);
                 }
+                skip = 1;
             // Checks whether the key has changed
             } else if (keyc != ev.code && keyc != -1) {
                 memset(pattern, 0, sizeof(pattern));
                 keyc = ev.code;
+                skip = 1;
+            } 
+            // Check for run_down
+            if (ev.value == 1) {
+            }
+            if (skip == 1) {
+                skip = 0;
             } else {
                 keyc = ev.code;
                 // value 2; key held down
@@ -202,7 +214,7 @@ int main(int argc, char **argv)
                     if (hold < 1){
                         strcat(pattern,"1");
                         hold++;
-                    } else if (hold % interval == (interval - 1)) {
+                    } else if ((hold-5) % interval == (interval - 1)) {
                         run_hold();
                         hold ++;
                     } else {
@@ -268,7 +280,7 @@ static void setmodifier(int keycode, int value) {
 
 static void exitsignal() {
     printf("SIGINT signal recieved");
-    libevdev_uinput_destroy (uidev);
+    libevdev_uinput_destroy(uidev);
     close(fd);
     exit(0);
 }
