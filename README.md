@@ -8,10 +8,11 @@
   * Device reconnect
     * Ensure device shows up under the same name. See [Extras](../../wiki/Extra) #7
     * For run_hold, memset(pattern, ...) no longer has an effect. Pattern is by default reset after each execution. 
-* <h3>evmulti.c</h3>
-  * Framework
-    * Only a base, many things not implemented:
-    * Numlock check, uinput device, Reducing permissions
-    * Main logic loop / run_xxx functions, Device reconnect
-    * . Needs to be tailored for each use case. 
-    * Will probably put something nicer together in python at a later time
+* <h3>evmulti.c</h3>  
+  
+  * Framework  
+    * Only a base, many things not implemented:  
+    * Numlock check, uinput device, Reducing permissions  
+    * Main logic loop / run_xxx functions, Device reconnect  
+  * Needs to be tailored for each use case.  
+Will probably put something nicer together in python at a later time
