@@ -44,7 +44,7 @@ static void run_hold() {
     //! ^^^ Your code goes here ^^^
 }
 
-static void run_pattern() {
+static void run_pattern(int sig_number) {
     int len = strlen(pattern);
     if (len >= 1) {
     //! vvv Your code goes here vvv
@@ -84,7 +84,7 @@ static void run_pattern() {
 
 // Function declarations for main (Found near the end)
 static void setmodifier(int keycode, int value);
-static void exitsignal();
+static void exitsignal(int sig_number);
 
 int main(int argc, char **argv)
 {
@@ -278,7 +278,7 @@ static void setmodifier(int keycode, int value) {
     }
 }
 
-static void exitsignal() {
+static void exitsignal(int sig_number) {
     printf("SIGINT signal recieved");
     libevdev_uinput_destroy(uidev);
     close(fd);
