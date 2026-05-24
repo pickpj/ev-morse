@@ -227,16 +227,16 @@ int main(int argc, char **argv)
                 } else if (ev.value == 0) {
                     if (strlen(pattern) == 0 && hold > interval) {
                         hold = 0;
-                        printf("Key code: %d, Value: %s \n", ev.code, pattern);
+                        printf("Key code: %4d,  Value: %s \n", ev.code, pattern);
                         fflush(stdout);
                         memset(pattern, 0, sizeof(pattern));
                     } else if (hold > 0) {
                         hold = 0;
-                        printf("Key code: %d, Value: %s \n", ev.code, pattern);
+                        printf("Key code: %4d,  Value: %s \n", ev.code, pattern);
                         fflush(stdout);
                     } else {
                         strcat(pattern,"0");
-                        printf("Key code: %d, Value: %s \n", ev.code, pattern);
+                        printf("Key code: %4d,  Value: %s \n", ev.code, pattern);
                         fflush(stdout);
                     }
                 }
